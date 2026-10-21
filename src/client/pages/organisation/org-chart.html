@@ -1,0 +1,68 @@
+<!-- Visual org chart with zoom and the selected person panel (logic: org-chart.js) -->
+<!-- ============ org chart ============ -->
+<div x-show="orgView !== 'list'" class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
+  <div class="card gap-0 overflow-hidden p-0">
+    <!-- zoom -->
+    <div class="flex flex-wrap items-center gap-2 border-b px-4 py-2" role="group" aria-label="Zoom">
+      <button type="button" class="btn btn-outline btn-square" aria-label="Zoom out" title="Zoom out (−)" @click="zoomOut()" :disabled="zoom <= 0.3"><svg class="i"><use href="#i-minus"/></svg></button>
+      <input type="range" min="30" max="200" step="5" :value="zoomPct" @input="setZoom($event.target.value / 100)" aria-label="Zoom level" class="h-1.5 w-28 cursor-pointer accent-[var(--primary)] sm:w-40">
+      <button type="button" class="btn btn-outline btn-square" aria-label="Zoom in" title="Zoom in (+)" @click="zoomIn()" :disabled="zoom >= 2"><svg class="i"><use href="#i-plus"/></svg></button>
+      <button type="button" class="min-w-14 cursor-pointer rounded-md px-2 py-1 text-center font-mono text-xs tabular-nums hover:bg-muted" title="Back to 100%" @click="setZoom(1)" x-text="zoomPct + '%'"></button>
+      <button type="button" class="btn btn-outline btn-sm" @click="fit()"><svg class="i"><use href="#i-maximize"/></svg>Fit</button>
+      <span class="ml-auto hidden text-[11px] text-muted-foreground md:inline">Ctrl/⌘ + scroll to zoom · drag the background to move</span>
+    </div>
+    <div x-ref="chartScroll" tabindex="0" aria-label="Organisation chart (keys + − 0 to zoom)" class="overflow-auto p-6 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+         :class="panning ? 'cursor-grabbing select-none' : 'cursor-grab'" style="max-height: 74dvh"
+         @wheel="wheelZoom($event)" @keydown="zoomKey($event)" @mousedown="panStart($event)" @mousemove.window="panMove($event)" @mouseup.window="panning = false">
+      <div class="mx-auto" :style="`width: ${chart.width * zoom}px; height: ${chart.height * zoom}px`">
+        <div class="relative origin-top-left" :style="`width: ${chart.width}px; height: ${chart.height}px; transform: scale(${zoom})`">
+          <svg class="pointer-events-none absolute inset-0 text-muted-foreground/45" :width="chart.width" :height="chart.height" aria-hidden="true"><path :d="chart.path" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <template x-for="n in chart.nodes" :key="n.id">
+            <div class="absolute transition-opacity" :style="`left: ${n.x}px; top: ${n.y}px; width: ${CARD_W}px; height: ${CARD_H}px`" :class="n.dim ? 'opacity-35' : ''">
+              <button type="button" @click="select(n.id)" :aria-pressed="selected === n.id" :aria-label="n.m.name + ', ' + n.m.title"
+                      class="flex size-full flex-col items-center rounded-xl px-2 pt-2 pb-1.5 text-center outline-none transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring"
+                      :class="selected === n.id ? 'bg-primary/5 ring-1 ring-primary' : ''">
+                <span class="relative">
+                  <span class="grid size-16 place-items-center rounded-full text-lg font-semibold ring-4 ring-card" :class="[color(n.id), n.me ? 'outline-2 outline-offset-2 outline-primary' : '']" x-text="n.m.initials"></span>
+                  <span x-show="n.me" class="absolute -right-4 -bottom-1 rounded bg-primary px-1.5 py-0.5 text-[9px] font-semibold text-primary-foreground">You</span>
+                </span>
+                <span class="mt-2 text-[12px] leading-tight font-bold tracking-wide uppercase" x-text="n.m.name"></span>
+                <span x-show="zoom >= 0.45" class="mt-0.5 line-clamp-2 text-[12px] leading-snug font-medium text-primary" x-text="n.m.title"></span>
+                <span x-show="zoom >= 0.6" class="mt-auto inline-flex items-center gap-1.5"><span class="badge rounded-md border-transparent text-[10px]" :class="ROLE_TONE[n.eff]" :title="n.inherited ? 'Manager rights inherited from the hierarchy' : ''" x-text="n.eff + (n.inherited ? ' *' : '')"></span><span class="font-mono text-[10px] text-muted-foreground" x-text="n.below + ' below'"></span></span>
+              </button>
+              <button x-show="n.hasKids" type="button" @click.stop="toggle(n.id)" :aria-label="n.hidden ? 'Expand ' + n.m.name : 'Collapse ' + n.m.name" :aria-expanded="!n.hidden"
+                      class="absolute -bottom-3 left-1/2 z-[2] grid h-6 min-w-6 -translate-x-1/2 cursor-pointer place-items-center rounded-full border bg-card px-1.5 font-mono text-[10px] shadow-xs outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring" x-text="n.hidden ? '+' + n.below : '−'"></button>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+    <p class="border-t px-4 py-2.5 text-xs text-muted-foreground">Click a person for details · use the round button under a card to fold or unfold their team · * Manager rights inherited from the hierarchy.</p>
+  </div>
+
+  <!-- selected person panel -->
+  <aside class="card gap-0 self-start p-0" aria-live="polite">
+    <p x-show="!sel" class="px-4 py-10 text-center text-sm text-muted-foreground">Click a person in the chart to see their details.</p>
+    <template x-if="sel">
+      <div>
+        <div class="flex items-center gap-3 border-b px-4 py-4">
+          <span class="grid size-14 shrink-0 place-items-center rounded-full text-base font-semibold" :class="color(sel.m.id)" x-text="sel.m.initials"></span>
+          <div class="min-w-0"><p class="truncate font-semibold" x-text="sel.m.name"></p><p class="truncate text-sm text-primary" x-text="sel.m.title"></p><span class="mt-1 inline-block badge rounded-md border-transparent" :class="ROLE_TONE[sel.eff]" x-text="sel.eff + (sel.inherited ? ' *' : '')"></span></div>
+        </div>
+        <dl class="flex flex-col gap-3 px-4 py-4 text-sm">
+          <div><dt class="text-xs text-muted-foreground">Reports to</dt><dd><button type="button" x-show="sel.boss" @click="selected = sel.boss.id" class="cursor-pointer font-medium hover:text-primary hover:underline" x-text="sel.boss ? sel.boss.name : ''"></button><span x-show="!sel.boss" class="text-muted-foreground">— (top level)</span></dd></div>
+          <div><dt class="text-xs text-muted-foreground" x-text="'Direct reports (' + sel.direct.length + ') · ' + sel.below + ' below in total'"></dt>
+            <dd class="mt-1 flex flex-wrap gap-1.5"><template x-for="c in sel.direct" :key="c.id"><button type="button" @click="selected = c.id" class="flex cursor-pointer items-center gap-1.5 rounded-full border py-0.5 pr-2.5 pl-0.5 text-xs hover:bg-muted"><span class="grid size-5 place-items-center rounded-full text-[8px] font-semibold" :class="color(c.id)" x-text="c.initials"></span><span x-text="c.name.split(' ')[0]"></span></button></template><span x-show="sel.direct.length === 0" class="text-muted-foreground">Nobody</span></dd></div>
+          <div><dt class="text-xs text-muted-foreground" x-text="'Projects (' + sel.projects.length + ')'"></dt>
+            <dd class="mt-1 flex flex-wrap gap-1.5"><template x-for="p in sel.projects" :key="p.id"><a :href="'project-detail.html?id=' + p.id" class="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] hover:bg-accent" x-text="p.code"></a></template><span x-show="sel.projects.length === 0" class="text-muted-foreground">None</span></dd></div>
+        </dl>
+        <div class="border-t px-4 py-4">
+          <template x-if="sel.editable"><div class="flex flex-col gap-1.5"><label for="oc-sup" class="text-xs font-medium">Supervisor</label>
+              <select id="oc-sup" class="select" @change="setSupervisor(sel.m.id, $event.target.value)"><template x-for="o in sel.options" :key="o.value"><option :value="o.value" :selected="o.value === sel.current" x-text="o.label"></option></template></select>
+              <p class="text-[11px] text-muted-foreground">You can change this because the person is in your branch (administrators: anyone).</p></div></template>
+          <p x-show="!sel.editable" class="text-xs text-muted-foreground">Read-only: you can only reorganise the people below you.</p>
+        </div>
+      </div>
+    </template>
+  </aside>
+</div>

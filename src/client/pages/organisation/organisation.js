@@ -1,9 +1,12 @@
 // Organisation page: the reporting lines (who reports to whom), editable within one's branch.
-// Markup: organisation.html. Changes are saved by core/store.js and written to the activity log.
+// Shown as a chart (org-chart.js) and / or a list. Markup: organisation.html (+ org-chart.html).
+// Changes are saved by core/store.js and written to the activity log.
 import moment from 'moment';
+import { compose } from '../../core/compose.js';
 import { logActivity } from '../../core/store.js';
+import { orgChart } from './org-chart.js';
 
-export default () => ({
+export default () => compose(orgChart(), {
   NONE: '__none__', // select value for "no supervisor"
   get canSeePage() { return !this.isClient; },
   get staffAll() { return this.members.filter((m) => m.role !== 'Client'); },

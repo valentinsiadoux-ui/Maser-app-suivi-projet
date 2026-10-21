@@ -1,10 +1,13 @@
 // Team Schedule page (Admin & Manager): who works on which project, and when.
 // Admin sees all staff; a manager sees themself and the people below them.
-// Schedule logic: features/staff-schedule.js. Markup: team-schedule.html.
+// Views: half-day planning grid (default, half-day-grid.js), timeline and list (features/staff-schedule.js).
+// Markup: team-schedule.html (+ half-day-grid.html).
 import { compose } from '../../core/compose.js';
 import { staffSchedule } from '../../features/staff-schedule.js';
 
 export default () => compose(staffSchedule(), {
+  view: 'half', // half | timeline | list
+
   get canSeePage() { return this.role === 'Admin' || this.role === 'Manager'; },
   get staff() {
     if (this.role === 'Admin') return this.members.filter((m) => m.role !== 'Client');

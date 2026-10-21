@@ -2,7 +2,7 @@
 //
 // Today the data comes from core/demo-data.js and changes are kept in the browser (localStorage).
 // This is the single place to change when the data moves to the Google Sheet (google.script.run):
-// load the collections in store() and write them in save().
+// load the collections in store() and write them in saveData().
 import { DATA } from './demo-data.js';
 
 // Every localStorage key used by the app
@@ -15,8 +15,13 @@ export const KEYS = {
   leads: 'maser-leads',             // { projectId: memberId } designated project leads
   supervisors: 'maser-supervisors', // { memberId: supervisorId | null } reporting lines changed in Organisation
   activityLog: 'maser-log',         // entries shown in Settings › Activity log
+  planningSlots: 'maser-slots',     // half-day planning (features/half-day-planning.js)
+  planningOpts: 'maser-planning-opts', // half-day planning options
   user: 'maser-user',               // signed-in person (prototype role switcher)
   prefs: 'maser-prefs-v1',          // display preferences (see core/preferences.js)
+  teamScheduleBy: 'maser-team-by',  // Team Schedule grid rows: person | project
+  orgView: 'maser-org-view',        // Organisation display: chart | list | both
+  orgZoom: 'maser-org-zoom',        // Organisation chart zoom
 };
 
 export const readJSON = (key, fallback) => {
@@ -48,9 +53,13 @@ export const store = () => ({
   allNotes: readJSON(KEYS.allNotes, null) || DATA.allNotes,
   allAmendments: readJSON(KEYS.allAmendments, null) || DATA.allAmendments,
   leads: readJSON(KEYS.leads, {}),
+  // half-day planning: null until first saved (the planning pages then start from the demo planning)
+  planningSlots: readJSON(KEYS.planningSlots, null),
+  planningOpts: { allowShare: false, selfPlan: 'free', source: 'planned', ...readJSON(KEYS.planningOpts, {}) },
 
-  // save a collection after changing it: this.allTasks = […]; this.save('allTasks')
-  save(name) { writeJSON(KEYS[name], this[name]); },
+  // save a collection after changing it: this.allTasks = […]; this.saveData('allTasks')
+  // (a distinctive name: pages often have their own save() for a dialog's Save button)
+  saveData(name) { writeJSON(KEYS[name], this[name]); },
 
   // change who a person reports to (null = top level)
   setSupervisorOf(id, supervisorId) {

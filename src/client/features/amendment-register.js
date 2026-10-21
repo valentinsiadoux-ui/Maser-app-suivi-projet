@@ -28,7 +28,7 @@ export const amendmentRegister = () => ({
   // ---------- workflow ----------
   // approval: Admin, a manager of the project, the project lead — and their supervisors (core/permissions.js)
   canApprove(pid) { return this.canLead(this.getProject(pid)); },
-  setStatus(a, status) { this.allAmendments = this.allAmendments.map((x) => (x.id === a.id ? { ...x, status } : x)); this.save('allAmendments'); },
+  setStatus(a, status) { this.allAmendments = this.allAmendments.map((x) => (x.id === a.id ? { ...x, status } : x)); this.saveData('allAmendments'); },
   submitAmendment(a) { if (a.status === 'Draft') this.setStatus(a, 'Pending Approval'); },
   approve(a) { if (a.status === 'Pending Approval' && this.canApprove(a.projectId)) this.setStatus(a, 'Approved'); },
 
@@ -47,7 +47,7 @@ export const amendmentRegister = () => ({
       id: 'a' + Date.now(), projectId: f.projectId, ref: 'AV-' + String(n).padStart(3, '0'), title: f.title.trim(), type: f.type,
       status: 'Draft', amount: Number(f.amount) || 0, daysImpact: Number(f.days) || 0, requestedBy: this.user.id, createdAt: TODAY,
     }];
-    this.save('allAmendments');
+    this.saveData('allAmendments');
     this.dialog.open = false;
   },
   closeLocal() { this.dialog.open = false; },

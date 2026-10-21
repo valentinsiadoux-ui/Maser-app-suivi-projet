@@ -1,0 +1,95 @@
+<!-- My week as a half-day calendar, the default view of My Schedule (logic: my-week.js) -->
+<div x-data="myWeek" @keydown.escape.window="pop.open = false; sheet.open = false" class="flex flex-col gap-4">
+  <div class="flex flex-wrap items-center gap-2">
+    <div class="inline-flex items-center gap-1">
+      <button type="button" class="btn btn-outline btn-square" aria-label="Previous" @click="shift(-1)"><svg class="i"><use href="#i-chevron-left"/></svg></button>
+      <button type="button" class="btn btn-outline" @click="goToday()">Today</button>
+      <button type="button" class="btn btn-outline btn-square" aria-label="Next" @click="shift(1)"><svg class="i"><use href="#i-chevron-right"/></svg></button>
+    </div>
+    <span class="min-w-44 px-1 text-sm font-medium" x-text="rangeLabel"></span>
+    <label class="hidden cursor-pointer items-center gap-2 text-xs text-muted-foreground select-none md:inline-flex"><button type="button" role="switch" :aria-checked="!!(showWeekend)" aria-label="Show weekend" @click="showWeekend = !showWeekend" class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border border-transparent outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50" :class="showWeekend ? 'bg-primary' : 'bg-muted-foreground/35'"><span aria-hidden="true" class="pointer-events-none block size-4 rounded-full bg-white shadow-sm transition-transform" :class="showWeekend ? 'translate-x-[18px]' : 'translate-x-0.5'"></span></button>Weekend</label>
+    <div class="ml-auto flex items-center gap-2"><button type="button" class="btn btn-outline" @click="showOpts = !showOpts" :aria-expanded="showOpts"><svg class="i"><use href="#i-settings"/></svg><span class="hidden sm:inline">Test options</span></button></div>
+  </div>
+  <div x-show="showOpts" x-cloak class="card gap-4 p-4"><div class="flex items-center justify-between"><h3 class="text-sm font-semibold">Test options <span class="font-normal text-muted-foreground">— open questions to decide</span></h3><button type="button" class="grid size-6 cursor-pointer place-items-center rounded-md hover:bg-muted" aria-label="Close" @click="showOpts = false"><svg class="i size-4"><use href="#i-x"/></svg></button></div><div @change="saveOpts()" @click="$nextTick(() => saveOpts())" class="flex flex-col gap-4"><div class="flex flex-col gap-1.5"><p class="text-sm font-medium">Source of truth</p><div role="radiogroup" aria-label="Source" class="inline-flex rounded-lg border bg-card p-0.5"><template x-for="o in [{v:'planned',l:'Planned slots'},{v:'both',l:'+ Estimate from tasks'}]" :key="o.v"><button type="button" role="radio" :aria-checked="opts.source === o.v" @click="opts.source = o.v" class="cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium whitespace-nowrap transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring" :class="opts.source === o.v ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'" x-text="o.l"></button></template></div></div><div class="flex flex-col gap-1.5"><p class="text-sm font-medium">Who plans</p><div role="radiogroup" aria-label="Who plans" class="inline-flex rounded-lg border bg-card p-0.5"><template x-for="o in [{v:'no',l:'Manager only'},{v:'free',l:'Self-planning'},{v:'validate',l:'Propose → validate'}]" :key="o.v"><button type="button" role="radio" :aria-checked="opts.selfPlan === o.v" @click="opts.selfPlan = o.v" class="cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium whitespace-nowrap transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring" :class="opts.selfPlan === o.v ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'" x-text="o.l"></button></template></div><p class="text-xs text-muted-foreground">Applies to collaborators in My Schedule. Proposals appear dashed in Team Schedule until a manager approves them.</p></div><div class="flex items-center justify-between gap-3"><div><p class="text-sm font-medium">Share a half-day between projects</p><p class="text-xs text-muted-foreground" x-text="opts.allowShare ? 'Allowed: no conflict alert.' : 'Exclusive: double-booking is flagged.'"></p></div><button type="button" role="switch" :aria-checked="!!(opts.allowShare)" aria-label="Allow sharing" @click="opts.allowShare = !opts.allowShare" class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border border-transparent outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50" :class="opts.allowShare ? 'bg-primary' : 'bg-muted-foreground/35'"><span aria-hidden="true" class="pointer-events-none block size-4 rounded-full bg-white shadow-sm transition-transform" :class="opts.allowShare ? 'translate-x-[18px]' : 'translate-x-0.5'"></span></button></div></div></div>
+  <p x-show="opts.selfPlan === 'no'" x-cloak class="flex items-start gap-2 rounded-lg border border-dashed px-4 py-2.5 text-sm text-muted-foreground"><svg class="i mt-0.5 size-4 shrink-0"><use href="#i-info"/></svg>Your manager plans your time: you can view it here but not change it.</p>
+  <p x-show="opts.selfPlan === 'validate'" x-cloak class="flex items-start gap-2 rounded-lg border border-dashed border-warning/50 bg-warning/10 px-4 py-2.5 text-sm text-warning-ink"><svg class="i mt-0.5 size-4 shrink-0"><use href="#i-info"/></svg><span>Your changes are sent to your manager for validation (shown dashed). <span x-show="proposedMine > 0" class="font-medium" x-text="proposedMine + ' waiting'"></span></span></p>
+
+  <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
+    <!-- calendar (wide screens) -->
+    <div class="card hidden gap-0 overflow-hidden p-0 md:block">
+      <div class="overflow-x-auto">
+        <div class="grid min-w-[640px]" :style="`grid-template-columns: 96px repeat(${days.length}, minmax(0, 1fr))`">
+          <div class="border-b bg-muted/40"></div>
+          <template x-for="d in days" :key="d.date"><div class="border-b border-l px-3 py-2.5 text-center" :class="d.today ? 'bg-destructive/10' : d.weekend ? 'bg-muted/60' : 'bg-muted/40'"><p class="text-xs font-medium" :class="d.today ? 'text-destructive' : 'text-muted-foreground'" x-text="d.label"></p><p class="text-lg font-semibold tabular-nums" :class="d.today ? 'text-destructive' : ''" x-text="d.num"></p></div></template>
+          <template x-for="half in ['AM', 'PM']" :key="half">
+            <div class="contents">
+              <div class="flex flex-col items-start gap-0.5 border-b px-3 py-3 text-xs text-muted-foreground"><span class="font-medium text-foreground" x-text="half === 'AM' ? 'Morning' : 'Afternoon'"></span><span class="font-mono text-[10px]" x-text="half === 'AM' ? '08:30–12:30' : '13:30–17:30'"></span></div>
+              <template x-for="d in days" :key="d.date + half">
+                <button type="button" @click="openPop($event, d, half)" :aria-label="fmtHalf(vw(d, half).i)" :disabled="d.weekend"
+                        class="relative flex min-h-36 flex-col gap-1.5 border-b border-l p-2 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                        :class="[d.today ? 'bg-destructive/5' : '', d.weekend ? 'bg-muted/60' : canEditMe ? 'cursor-pointer hover:bg-muted/50' : 'cursor-default']">
+                  <template x-for="b in vw(d, half).blocks" :key="b.code"><div class="flex-1 rounded-md px-2.5 py-2" :class="[vw(d, half).state === 'conflict' ? 'ring-2 ring-destructive' : '', vw(d, half).proposed ? 'outline-2 outline-dashed outline-foreground/60 opacity-80' : '']" :style="`background: color-mix(in oklch, ${b.color} 16%, var(--card)); border-left: 4px solid ${b.color}`"><p class="font-mono text-[11px] font-semibold" x-text="b.code"></p><p class="text-xs leading-snug font-medium" x-text="b.name"></p><p x-show="b.task" class="mt-1 truncate rounded bg-card/70 px-1.5 py-0.5 text-[10px] text-muted-foreground" x-text="b.task"></p></div></template>
+                  <div x-show="vw(d, half).state === 'leave'" class="flex flex-1 items-center justify-center rounded-md text-xs font-medium text-muted-foreground" :style="`background: ${HD_LEAVE}`">Leave</div>
+                  <div x-show="vw(d, half).state === 'free' && !d.weekend" class="flex flex-1 items-center justify-center rounded-md border border-dashed text-xs text-muted-foreground"><span x-text="canEditMe ? '+ Plan' : 'Free'"></span></div>
+                  <span x-show="vw(d, half).state === 'conflict'" class="absolute top-1 right-1 grid size-5 place-items-center rounded-full bg-destructive text-white" title="Two projects on the same half-day"><svg class="i size-3"><use href="#i-triangle-alert"/></svg></span>
+                </button>
+              </template>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <!-- list (phone) -->
+    <div class="flex flex-col gap-3 md:hidden">
+      <template x-for="d in days" :key="d.date">
+        <section class="overflow-hidden rounded-xl border bg-card" :class="d.today ? 'ring-1 ring-destructive/50' : ''">
+          <h3 class="flex items-center justify-between border-b px-3 py-2 text-sm font-semibold" :class="d.today ? 'bg-destructive/5' : 'bg-muted/40'"><span x-text="hdFmt(d.date, 'dddd D MMMM')"></span><span x-show="d.today" class="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-semibold text-white">Today</span></h3>
+          <template x-for="half in ['AM', 'PM']" :key="half">
+            <button type="button" @click="openSheet(half === 'AM' ? d.AM : d.PM)" class="flex w-full items-center gap-3 border-b px-3 py-2.5 text-left last:border-b-0">
+              <span class="w-16 shrink-0 text-[11px] font-medium tracking-wider text-muted-foreground uppercase" x-text="half === 'AM' ? 'Morning' : 'Afternoon'"></span>
+              <span class="flex min-w-0 flex-1 flex-col gap-1">
+                <template x-for="b in vw(d, half).blocks" :key="b.code"><span class="block rounded-md border-l-4 px-2 py-1" :style="`border-left-color: ${b.color}; background: color-mix(in oklch, ${b.color} 12%, var(--card))`"><span class="block truncate font-mono text-[11px] font-semibold" x-text="b.code"></span><span class="block truncate text-xs" x-text="b.name"></span></span></template>
+                <span x-show="vw(d, half).state === 'leave'" class="rounded-md px-2 py-1.5 text-xs text-muted-foreground" :style="`background: ${HD_LEAVE}`">Leave</span>
+                <span x-show="vw(d, half).state === 'free'" class="rounded-md border border-dashed px-2 py-1.5 text-xs text-muted-foreground" x-text="canEditMe ? '+ Plan' : 'Free'"></span>
+              </span>
+            </button>
+          </template>
+        </section>
+      </template>
+    </div>
+
+    <aside class="flex flex-col gap-4">
+      <div class="card gap-0 p-0">
+        <h2 class="border-b px-4 py-3 text-sm font-semibold">This week</h2>
+        <div class="flex flex-col gap-3 px-4 py-3">
+          <div class="flex items-center gap-3"><div class="h-2 flex-1 overflow-hidden rounded-full bg-muted"><div class="h-full rounded-full bg-primary transition-all" :style="`width: ${summary.pct}%`"></div></div><span class="font-mono text-xs" x-text="summary.used + '/' + summary.cap"></span></div>
+          <p class="text-xs text-muted-foreground"><span class="font-medium text-success-ink" x-text="summary.free + ' free'"></span> · <span x-text="summary.leave + ' on leave'"></span></p>
+          <ul class="flex flex-col gap-1.5"><template x-for="p in summary.list" :key="p.id"><li class="flex items-center gap-2 text-sm"><span class="size-2.5 rounded-sm" :style="`background: ${p.color}`"></span><span class="flex-1 truncate" x-text="p.code + ' · ' + p.name"></span><span class="font-mono text-xs tabular-nums" x-text="p.n + ' ½d'"></span></li></template><li x-show="summary.list.length === 0" class="text-xs text-muted-foreground">Nothing planned this week.</li></ul>
+        </div>
+      </div>
+      <button type="button" class="btn btn-text btn-sm self-start text-muted-foreground" @click="reset()">Reset sample planning</button>
+    </aside>
+  </div>
+
+  <!-- choice popover (wide screens) -->
+  <div x-show="pop.open" x-cloak @click.outside="pop.open = false" role="dialog" :aria-label="'Plan ' + fmtHalf(pop.i)" :style="`position: fixed; left: ${pop.x}px; top: ${pop.y}px`" class="z-50 w-64 rounded-xl bg-popover p-2 text-popover-foreground shadow-lg ring-1 ring-foreground/10">
+    <p class="px-2 py-1.5 text-xs font-medium text-muted-foreground" x-text="fmtHalf(pop.i)"></p>
+    <template x-for="p in myProjects" :key="p.id"><button type="button" @click="choose({ kind: 'work', projectId: p.id })" class="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm hover:bg-accent"><span class="size-3 rounded-sm" :style="`background: ${hColor(p.id)}`"></span><span class="min-w-0 flex-1"><span class="block truncate font-medium" x-text="p.code"></span><span class="block truncate text-xs text-muted-foreground" x-text="p.name"></span></span><svg x-show="popCurrent.projects.includes(p.id)" class="i size-4 text-primary"><use href="#i-check"/></svg></button></template>
+    <div class="my-1 h-px bg-border"></div>
+    <button type="button" @click="choose({ kind: 'leave' })" class="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm hover:bg-accent"><span class="size-3 rounded-sm" :style="`background: ${HD_LEAVE}`"></span>Leave / absence</button>
+    <button type="button" @click="choose(null)" class="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm text-destructive hover:bg-destructive/10"><svg class="i size-4"><use href="#i-eraser"/></svg>Clear this half-day</button>
+  </div>
+  <!-- bottom sheet (phone) -->
+  <div x-show="sheet.open" x-cloak class="fixed inset-0 z-[60] md:hidden">
+    <div class="absolute inset-0 bg-black/30" @click="sheet.open = false"></div>
+    <div class="absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-3xl bg-popover p-4 pb-6 shadow-xl" role="dialog" aria-label="Plan half-day">
+      <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-muted-foreground/30"></div>
+      <p class="mb-3 text-sm font-semibold" x-text="fmtHalf(sheet.i)"></p>
+      <div class="flex flex-col gap-1.5">
+        <template x-for="p in myProjects" :key="p.id"><button type="button" @click="chooseSheet({ kind: 'work', projectId: p.id })" class="flex w-full cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-sm hover:bg-muted" :class="sheetCurrent.projects.includes(p.id) ? 'border-primary ring-1 ring-primary' : ''"><span class="size-3.5 rounded-sm" :style="`background: ${hColor(p.id)}`"></span><span class="min-w-0 flex-1"><span class="block font-mono text-xs font-semibold" x-text="p.code"></span><span class="block truncate text-xs text-muted-foreground" x-text="p.name"></span></span></button></template>
+        <div class="mt-1 grid grid-cols-2 gap-1.5"><button type="button" @click="chooseSheet({ kind: 'leave' })" class="cursor-pointer rounded-xl border px-3 py-2.5 text-sm hover:bg-muted">Leave</button><button type="button" @click="chooseSheet(null)" class="cursor-pointer rounded-xl border px-3 py-2.5 text-sm text-destructive hover:bg-destructive/10">Clear</button></div>
+      </div>
+    </div>
+  </div>
+</div>

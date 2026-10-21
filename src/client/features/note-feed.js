@@ -16,15 +16,15 @@ export const noteThreads = () => ({
   // add the current draft as a new note at the top of the feed
   addNote(projectId, category) {
     this.allNotes = [{ id: 'n' + Date.now(), projectId, authorId: this.user.id, category, content: this.draft.trim(), createdAt: this.nowIso(), comments: [] }, ...this.allNotes];
-    this.draft = ''; this.save('allNotes');
+    this.draft = ''; this.saveData('allNotes');
   },
   startEdit(n) { this.editing = { id: n.id, content: n.content }; },
   saveEdit() {
     const c = this.editing.content.trim(); if (!c) return;
     this.allNotes = this.allNotes.map((x) => (x.id === this.editing.id ? { ...x, content: c } : x));
-    this.editing = { id: null, content: '' }; this.save('allNotes');
+    this.editing = { id: null, content: '' }; this.saveData('allNotes');
   },
-  remove(n) { this.allNotes = this.allNotes.filter((x) => x.id !== n.id); this.save('allNotes'); },
+  remove(n) { this.allNotes = this.allNotes.filter((x) => x.id !== n.id); this.saveData('allNotes'); },
 
   // ---------- comments ----------
   // expand the threads that already have comments (call from init())
@@ -33,7 +33,7 @@ export const noteThreads = () => ({
   postComment(n) {
     const text = (this.drafts[n.id] || '').trim(); if (!text || !this.canComment(n)) return;
     this.allNotes = this.allNotes.map((x) => (x.id === n.id ? { ...x, comments: [...(x.comments || []), { id: 'c' + Date.now(), authorId: this.user.id, content: text, createdAt: this.nowIso() }] } : x));
-    this.drafts = { ...this.drafts, [n.id]: '' }; this.save('allNotes');
+    this.drafts = { ...this.drafts, [n.id]: '' }; this.saveData('allNotes');
   },
 });
 

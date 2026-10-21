@@ -40,7 +40,7 @@ export const testResults = () => ({
     const t = this.allTests.find((x) => x.id === id);
     if (!t || !this.canEditTest(t)) return;
     this.allTests = this.allTests.map((x) => (x.id === id ? { ...x, status, lastRun: TODAY } : x));
-    this.save('allTests');
+    this.saveData('allTests');
   },
   openMenu(ev, test) {
     const r = ev.currentTarget.getBoundingClientRect(), w = 176;

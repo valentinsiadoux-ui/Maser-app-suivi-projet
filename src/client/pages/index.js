@@ -25,6 +25,8 @@ import { testsTab } from './project-detail/tabs/tests.js';
 import { notesTab } from './project-detail/tabs/notes.js';
 import { amendmentsTab } from './project-detail/tabs/amendments.js';
 import { meetingsTab } from './project-detail/tabs/meetings.js';
+import { halfGrid } from './team-schedule/half-day-grid.js';
+import { myWeek } from './my-schedule/my-week.js';
 
 export const DEFAULT_ROUTE = 'dashboard';
 
@@ -46,4 +48,4 @@ export const PAGES = {
 };
 
 // Components used inside a page (x-data="…" in the page's markup)
-export const NESTED_COMPONENTS = { tasksTab, testsTab, notesTab, amendmentsTab, meetingsTab };
+export const NESTED_COMPONENTS = { tasksTab, testsTab, notesTab, amendmentsTab, meetingsTab, halfGrid, myWeek };

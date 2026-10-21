@@ -36,19 +36,28 @@
               :class="view === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'">
         <svg class="i size-4"><use href="#i-list"/></svg><span class="hidden sm:inline">List</span>
       </button>
+      <button type="button" :aria-pressed="view === 'week'" aria-label="Week" @click="view = 'week'"
+              class="inline-flex h-full items-center gap-1.5 rounded-md px-2.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+              :class="view === 'week' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'">
+        <svg class="i size-4"><use href="#i-calendar-days"/></svg><span class="hidden sm:inline">Week</span>
+      </button>
     </div>
-    <select x-model="filter" aria-label="Filter by project" class="select h-8 w-64">
+    <select x-show="view !== 'week'" x-model="filter" aria-label="Filter by project" class="select h-8 w-64">
       <template x-for="o in filterOptions" :key="o.value"><option :value="o.value" x-text="o.label"></option></template>
     </select>
-    <p class="ml-auto text-xs text-muted-foreground"
+    <p x-show="view !== 'week'" class="ml-auto text-xs text-muted-foreground"
        x-text="sched.count + ' assignment' + (sched.count === 1 ? '' : 's') + (sched.people > 1 ? ' · ' + sched.current + ' of ' + sched.people + ' people currently assigned' : '')"></p>
   </div>
 
   <!-- No assignment -->
-  <div x-show="sched.count === 0" x-cloak class="rounded-lg border border-dashed bg-card/50 px-6 py-12 text-center">
+  <div x-show="sched.count === 0 && view !== 'week'" x-cloak class="rounded-lg border border-dashed bg-card/50 px-6 py-12 text-center">
     <p class="text-sm font-medium">No assignments for this selection</p>
     <p class="mt-1 text-sm text-muted-foreground">Try another project filter.</p>
   </div>
+
+  <template x-if="view === 'week'">
+    <!-- @include pages/my-schedule/my-week.html -->
+  </template>
 
   <!-- ======== Timeline ======== -->
   <div x-show="sched.count > 0 && view === 'timeline'" class="card gap-0 overflow-hidden p-0">

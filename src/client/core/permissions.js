@@ -25,6 +25,6 @@ export const permissions = () => ({
     const next = { ...this.leads };
     if (memberId && next[p.id] !== memberId) next[p.id] = memberId; else delete next[p.id];
     this.leads = next;
-    this.save('leads');
+    this.saveData('leads');
   },
 });

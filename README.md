@@ -43,6 +43,8 @@ src/
 | A page's menus / dialogs | `pages/<page>/<page>.overlays.html` |
 | A project tab | `pages/project-detail/tabs/<tab>.html` (+ `.js`) |
 | Task board, test results, notes, amendments, meetings, schedules | `features/` (used by both the page and the tab) |
+| Half-day planning (Team Schedule grid, My Schedule week) | `features/half-day-planning.js` (shared logic) + `pages/team-schedule/half-day-grid.*`, `pages/my-schedule/my-week.*` |
+| Visual org chart | `pages/organisation/org-chart.*` |
 | The side / top menu, its entries | `layout/sidebar.html`, `layout/top-nav.html`, `layout/navigation.js` |
 | The header (search, notifications, profile) | `layout/header.html` + `layout/search.*`, `notifications.*`, `profile-menu.*` |
 | "Create project" dialog | `layout/create-project.*` |
@@ -59,7 +61,7 @@ src/
 
 - **One root component.** `<body x-data="app">` is `core/app.js`, built from the parts of `core/` and `layout/`.
   Each page is a nested component (`x-data="tasksPage"`…) and sees everything of the root through `this`
-  (`this.user`, `this.canEdit(pid)`, `this.save('allTasks')`, `this.go('projects.html')`…).
+  (`this.user`, `this.canEdit(pid)`, `this.saveData('allTasks')`, `this.go('projects.html')`…).
 - **Pages.** `index.html` has one `<template x-if="route.name === '…'">` per page: only the current page exists.
   Changing page re-creates its component, like a page load. Links keep the mockups' form
   (`<a href="project-detail.html?id=p1&tab=tasks">`): `core/router.js` intercepts them.
@@ -75,8 +77,8 @@ src/
   ```
   Each feature lists at its top the properties the page must provide. `compose()` (`core/compose.js`) merges
   objects while keeping getters reactive.
-- **Saving data.** Change a collection, then save it: `this.allTasks = [...]; this.save('allTasks')`.
-  Today `save()` writes to the browser (localStorage). `core/store.js` is the only place to change to load and
+- **Saving data.** Change a collection, then save it: `this.allTasks = [...]; this.saveData('allTasks')`.
+  Today `saveData()` writes to the browser (localStorage). `core/store.js` is the only place to change to load and
   save from the Google Sheet (`google.script.run`).
 - **Page hooks.** In its `init()`, a page may call `this.usePage({ close, searchCtx })`: `close()` runs on Escape,
   `searchCtx()` puts the page's project / kind first in the header search.

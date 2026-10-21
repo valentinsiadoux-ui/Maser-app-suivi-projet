@@ -1,12 +1,15 @@
 // My Schedule page (Collaborator): my assignments by project and period, plus my upcoming
 // tasks and meetings grouped by day.
-// Schedule logic: features/staff-schedule.js. Markup: my-schedule.html.
+// Views: my week by half-day (default, my-week.js), timeline and list (features/staff-schedule.js).
+// Markup: my-schedule.html (+ my-week.html).
 import moment from 'moment';
 import { compose } from '../../core/compose.js';
 import { TODAY } from '../../core/demo-data.js';
 import { staffSchedule } from '../../features/staff-schedule.js';
 
 export default () => compose(staffSchedule(), {
+  view: 'week', // week | timeline | list
+
   // collaborators only, on their own row
   get canSeePage() { return this.role === 'Collaborator'; },
   get staff() { return this.role === 'Collaborator' ? [this.user] : []; },

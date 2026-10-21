@@ -22,7 +22,21 @@
       <p>A supervisor can access the projects of everyone below them, with at least the same rights. Placing someone above a manager, directly or not, gives them manager rights.</p>
     </div>
 
-    <div class="card gap-0 overflow-hidden p-0">
+    <!-- display: chart, list or both -->
+    <div class="flex flex-wrap items-center gap-2">
+      <div role="radiogroup" aria-label="Organisation view" class="inline-flex rounded-lg border bg-card p-0.5">
+        <template x-for="o in [{ v: 'chart', l: 'Org chart' }, { v: 'list', l: 'List' }, { v: 'both', l: 'Both' }]" :key="o.v"><button type="button" role="radio" :aria-checked="orgView === o.v" @click="setOrgView(o.v)" class="cursor-pointer rounded-md px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring" :class="orgView === o.v ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'" x-text="o.l"></button></template>
+      </div>
+      <div x-show="orgView !== 'list'" class="ml-auto flex flex-wrap items-center gap-2">
+        <label class="inline-flex cursor-pointer items-center gap-2 text-xs text-muted-foreground select-none"><button type="button" role="switch" :aria-checked="focusMine" aria-label="Highlight my branch" @click="focusMine = !focusMine" class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border border-transparent outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50" :class="focusMine ? 'bg-primary' : 'bg-muted-foreground/35'"><span aria-hidden="true" class="pointer-events-none block size-4 rounded-full bg-white shadow-sm transition-transform" :class="focusMine ? 'translate-x-[18px]' : 'translate-x-0.5'"></span></button>Highlight my branch</label>
+        <button type="button" class="btn btn-outline btn-sm" @click="expandAll()">Expand all</button>
+        <button type="button" class="btn btn-outline btn-sm" @click="collapseAll()">Collapse all</button>
+      </div>
+    </div>
+
+    <!-- @include pages/organisation/org-chart.html -->
+
+    <div x-show="orgView !== 'chart'" class="card gap-0 overflow-hidden p-0">
       <ul class="divide-y">
         <template x-for="r in tree" :key="r.member.id">
           <li class="flex flex-wrap items-center gap-3 px-4 py-3" :class="r.me ? 'bg-primary/5' : ''">
@@ -47,6 +61,6 @@
         </template>
       </ul>
     </div>
-    <p class="text-xs text-muted-foreground">* Manager rights inherited because this person is placed above a manager.</p>
+    <p x-show="orgView !== 'chart'" class="text-xs text-muted-foreground">* Manager rights inherited because this person is placed above a manager.</p>
   </div>
 </div>

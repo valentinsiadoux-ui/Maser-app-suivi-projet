@@ -33,7 +33,7 @@ export const taskBoard = () => ({
     const t = this.allTasks.find((x) => x.id === id);
     if (!t || !this.canEditTask(t)) return;
     this.allTasks = this.allTasks.map((x) => (x.id === id ? { ...x, status } : x));
-    this.save('allTasks');
+    this.saveData('allTasks');
   },
   drop(e, status) {
     const id = e.dataTransfer.getData('text/task');
@@ -84,7 +84,7 @@ export const taskBoard = () => ({
     } else {
       this.allTasks = this.allTasks.map((x) => (x.id === this.dialog.taskId ? { ...x, title: f.title.trim(), status: f.status, priority: f.priority, assigneeId: f.assigneeId, startDate: f.startDate, dueDate: f.dueDate } : x));
     }
-    this.save('allTasks');
+    this.saveData('allTasks');
     this.dialog.open = false;
   },
 });

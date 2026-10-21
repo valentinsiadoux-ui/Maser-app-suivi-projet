@@ -31,7 +31,7 @@ export const meetingPlanner = () => ({
       id: 'm' + Date.now(), projectId: f.projectId, title: f.title.trim(), start: f.start + ':00', durationMin, location: f.location,
       attendeeIds: p.memberIds.slice(0, 4),
     }];
-    this.save('allMeetings');
+    this.saveData('allMeetings');
     const params = new URLSearchParams({ action: 'TEMPLATE', text: `${f.title.trim()} — ${p.name}`, dates: `${this.gcalDate(f.start)}/${this.gcalDate(f.start, durationMin)}`, details: `Maser Engineering project meeting (${p.code})`, location: f.location });
     window.open('https://calendar.google.com/calendar/render?' + params.toString(), '_blank', 'noopener,noreferrer');
     this.dialog.open = false;
