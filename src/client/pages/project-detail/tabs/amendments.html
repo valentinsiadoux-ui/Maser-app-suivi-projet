@@ -1,0 +1,56 @@
+<!-- Project detail › Amendments tab (logic: tabs/amendments.js + features/) -->
+<div role="tabpanel" class="pt-4">
+  <div x-data="amendmentsTab" @keydown.escape.window="closeLocal()" class="flex flex-col gap-5">
+    <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <template x-for="k in totals" :key="k.label"><div class="card gap-1 px-4 py-3"><p class="text-xs text-muted-foreground" x-text="k.label"></p><p class="text-xl font-semibold tabular-nums" x-text="k.value"></p></div></template>
+    </div>
+    <div class="flex items-center justify-between gap-2">
+      <p class="text-sm text-muted-foreground">Version history of contract changes.</p>
+      <button type="button" class="btn btn-primary" @click="openNew()"><svg class="i"><use href="#i-plus"/></svg>New amendment</button>
+    </div>
+    <div class="card gap-0 p-0">
+      <div class="relative w-full overflow-x-auto">
+        <table class="w-full caption-bottom text-sm">
+          <thead class="[&_tr]:border-b"><tr class="border-b transition-colors hover:bg-muted/50">
+            <th class="h-10 px-2 pl-4 text-left align-middle font-medium whitespace-nowrap text-foreground">Ref.</th><th class="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground">Amendment</th><th class="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground">Type</th><th class="h-10 px-2 text-right align-middle font-medium whitespace-nowrap text-foreground">Budget</th><th class="h-10 px-2 text-right align-middle font-medium whitespace-nowrap text-foreground">Schedule</th><th class="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground">Requested by</th><th class="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground">Status</th><th class="h-10 px-2 pr-4 text-right align-middle font-medium whitespace-nowrap text-foreground"><span class="sr-only">Actions</span></th>
+          </tr></thead>
+          <tbody class="[&_tr:last-child]:border-0">
+            <template x-for="a in rows" :key="a.id">
+              <tr class="border-b transition-colors hover:bg-muted/50">
+                <td class="p-2 pl-4 align-middle font-mono text-xs whitespace-nowrap" x-text="a.ref"></td>
+                <td class="p-2 align-middle whitespace-nowrap"><p class="font-medium" x-text="a.title"></p><p class="text-xs text-muted-foreground" x-text="fd(a.createdAt, 'D MMM YYYY')"></p></td>
+                <td class="p-2 align-middle whitespace-nowrap"><span class="badge badge-secondary rounded-md font-normal" x-text="a.type"></span></td>
+                <td class="p-2 text-right align-middle whitespace-nowrap tabular-nums" x-text="a.amount ? '+' + eur(a.amount) : '—'"></td>
+                <td class="p-2 text-right align-middle whitespace-nowrap tabular-nums" x-text="a.daysImpact ? '+' + a.daysImpact + ' d' : '—'"></td>
+                <td class="p-2 align-middle whitespace-nowrap"><span class="inline-flex items-center gap-2"><span class="relative flex size-6 shrink-0 rounded-full select-none"><span class="flex size-full items-center justify-center rounded-full text-[10px] font-semibold" :class="color(a.requestedBy)" x-text="getMember(a.requestedBy)?.initials"></span></span><span class="truncate" x-text="getMember(a.requestedBy)?.name ?? 'Unassigned'"></span></span></td>
+                <td class="p-2 align-middle whitespace-nowrap"><span class="badge badge-outline gap-1.5 font-medium" :class="TONES[AMENDMENT_TONE[a.status]]"><span aria-hidden="true" class="size-1.5 rounded-full bg-current"></span><span x-text="a.status"></span></span></td>
+                <td class="p-2 pr-4 text-right align-middle whitespace-nowrap">
+                  <button x-show="a.status === 'Draft'" type="button" class="btn btn-outline btn-sm" @click="submitAmendment(a)"><svg class="i"><use href="#i-send"/></svg>Submit</button>
+                  <button x-show="a.status === 'Pending Approval' && canLeadProject" type="button" class="btn btn-sm bg-success text-success-foreground hover:bg-success/90" @click="approve(a)"><svg class="i"><use href="#i-check"/></svg>Approve</button>
+                </td>
+              </tr>
+            </template>
+            <tr x-show="list.length === 0" class="border-b"><td colspan="8" class="p-2 py-10 text-center align-middle text-muted-foreground">No amendments recorded.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- "New amendment" dialog -->
+    <div x-show="dialog.open" x-cloak class="fixed inset-0 z-[60]" role="presentation">
+      <div x-show="dialog.open" x-transition.opacity.duration.100ms @click="dialog.open = false" class="fixed inset-0 bg-black/10 backdrop-blur-xs"></div>
+      <div x-show="dialog.open" x-transition.opacity.duration.120ms role="dialog" aria-modal="true" aria-labelledby="am-title" class="fixed top-1/2 left-1/2 grid max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 sm:max-w-lg">
+        <form class="flex flex-col gap-4" @submit.prevent="saveAmendment()">
+          <div class="flex flex-col gap-2"><h2 id="am-title" class="text-base leading-none font-medium">New amendment (avenant)</h2><p class="text-sm text-muted-foreground">Record a change to scope, schedule or budget. It will be saved as a draft.</p></div>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div class="flex flex-col gap-1.5 sm:col-span-2"><label for="a-title" class="label-text">Title</label><input id="a-title" x-ref="atitle" x-model="aform.title" class="input" placeholder="e.g. Additional inspection campaign" required></div>
+            <div class="flex flex-col gap-1.5 sm:col-span-2"><label for="a-type" class="label-text">Revision type</label><select id="a-type" x-model="aform.type" class="select"><template x-for="ty in TYPES" :key="ty"><option :value="ty" x-text="ty"></option></template></select></div>
+            <div class="flex flex-col gap-1.5"><label for="a-amount" class="label-text">Budget impact (EUR)</label><input id="a-amount" type="number" inputmode="numeric" x-model="aform.amount" class="input" placeholder="0"></div>
+            <div class="flex flex-col gap-1.5"><label for="a-days" class="label-text">Schedule impact (days)</label><input id="a-days" type="number" inputmode="numeric" x-model="aform.days" class="input" placeholder="0"></div>
+          </div>
+          <div class="-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end"><button type="button" class="btn btn-outline" @click="dialog.open = false">Cancel</button><button type="submit" class="btn btn-primary" :disabled="!validAmendment">Save draft</button></div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

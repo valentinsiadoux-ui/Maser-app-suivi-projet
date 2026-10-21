@@ -1,0 +1,33 @@
+<!-- Header: logo ("Top" menu only), search, notifications, profile — then the optional horizontal menu -->
+<header class="sticky top-0 z-30">
+  <div class="flex h-16 items-center gap-3 border-b bg-card/90 px-4 backdrop-blur md:px-6">
+
+    <button x-show="layout === 'side'" type="button" @click="mobileOpen = true" class="btn btn-text btn-square lg:hidden" aria-label="Open navigation">
+      <svg class="i"><use href="#i-menu"/></svg>
+    </button>
+    <a x-show="layout === 'top'" x-cloak href="dashboard.html" class="mr-2 flex shrink-0 items-center gap-2.5" aria-label="Maser Engineering — Dashboard">
+      <span aria-hidden="true" class="grid size-8 place-items-center rounded-md bg-sidebar-primary font-mono text-sm font-bold text-sidebar-primary-foreground">M</span>
+      <span class="flex flex-col leading-none">
+        <span class="text-sm font-semibold tracking-tight text-foreground">Maser</span>
+        <span class="mt-0.5 text-[10px] font-medium tracking-[0.18em] text-muted-foreground uppercase">Engineering</span>
+      </span>
+    </a>
+
+    <!-- @include layout/search.html -->
+
+    <div class="ml-auto flex items-center gap-1.5">
+      <button x-show="layout === 'top' && !isClient" x-cloak type="button" @click="openCreate()" class="btn btn-primary mr-1 hidden sm:inline-flex">
+        <svg class="i"><use href="#i-plus"/></svg>
+        New Project
+      </button>
+
+      <!-- @include layout/notifications.html -->
+
+      <!-- @include layout/profile-menu.html -->
+    </div>
+  </div>
+
+  <!-- @include layout/top-nav.html -->
+
+  <!-- @include layout/project-menu.html -->
+</header>

@@ -1,0 +1,113 @@
+<!-- Project detail › Overview tab -->
+<div role="tabpanel" class="grid gap-6 pt-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+  <div class="flex flex-col gap-6">
+    <div class="card gap-3 p-5">
+      <h2 class="font-semibold">Scope</h2>
+      <p class="text-sm leading-relaxed text-pretty text-muted-foreground" x-text="project.description || 'No description provided.'"></p>
+      <dl class="mt-2 grid grid-cols-2 gap-4 border-t pt-4 sm:grid-cols-4">
+        <template x-for="f in facts" :key="f.label">
+          <div>
+            <dt class="text-xs text-muted-foreground" x-text="f.label"></dt>
+            <dd class="mt-0.5 text-sm font-medium" x-text="f.value"></dd>
+            <dd x-show="f.sub" class="text-[11px] text-muted-foreground" x-text="f.sub"></dd>
+          </div>
+        </template>
+      </dl>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <template x-for="s in stats" :key="s.label">
+        <button type="button" @click="setTab(s.go)" class="cursor-pointer rounded-xl bg-card p-4 text-left ring-1 ring-foreground/10 transition hover:ring-foreground/25">
+          <p class="text-xs text-muted-foreground" x-text="s.label"></p>
+          <p class="mt-1 text-2xl font-semibold tabular-nums" x-text="s.value"></p>
+          <p class="text-[11px] text-muted-foreground" x-text="s.sub"></p>
+        </button>
+      </template>
+    </div>
+
+    <template x-if="gantt && gantt.rows.length === 0"><p class="py-10 text-center text-sm text-muted-foreground">Nothing to schedule yet.</p></template>
+<template x-if="gantt && gantt.rows.length > 0">
+  <div class="card gap-0 overflow-hidden p-0">
+    <div class="overflow-x-auto">
+      <div :style="`min-width: ${gantt.minWidth + 240}px`">
+        <div class="flex border-b bg-muted/40">
+          <div class="sticky left-0 z-10 w-60 shrink-0 border-r bg-muted/40 px-4 py-2.5 text-xs font-medium text-muted-foreground">Task</div>
+          <div class="relative h-10 flex-1">
+            <template x-for="m in gantt.months" :key="m.label">
+              <div class="absolute inset-y-0 flex items-center border-l px-2 font-mono text-xs text-muted-foreground" :style="`left: ${m.left}%; width: ${m.width}%`" x-text="m.label"></div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Milestones -->
+        <div x-show="gantt.miles.length > 0" class="flex border-b last:border-b-0">
+          <div class="sticky left-0 z-10 w-60 shrink-0 border-r bg-card px-4 py-2.5">
+            <div class="block truncate text-sm font-medium">Milestones</div>
+            <p class="truncate font-mono text-[11px] text-muted-foreground" x-text="gantt.miles.length + ' key dates'"></p>
+          </div>
+          <div class="relative h-14 flex-1">
+            <template x-for="m in gantt.months" :key="m.label"><div aria-hidden="true" class="absolute inset-y-0 border-l border-dashed border-border/70" :style="`left: ${m.left}%`"></div></template>
+            <div aria-hidden="true" class="absolute inset-y-0 z-[1] w-0.5 bg-destructive/70" :style="`left: ${gantt.todayPct}%`"></div>
+            <template x-for="m in gantt.miles" :key="m.id">
+              <div tabindex="0" :title="m.title" :aria-label="'Milestone: ' + m.title" class="absolute top-1/2 z-[2] flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 outline-none" :style="`left: ${m.left}%`">
+                <span class="size-3 rotate-45 bg-warning ring-2 ring-card"></span>
+                <span class="text-[11px] font-medium whitespace-nowrap" x-text="m.title"></span>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Tasks -->
+        <template x-for="r in gantt.rows" :key="r.id">
+          <div class="flex border-b last:border-b-0">
+            <div class="sticky left-0 z-10 w-60 shrink-0 border-r bg-card px-4 py-2.5">
+              <div class="block truncate text-sm font-medium" x-text="r.label"></div>
+              <p class="truncate font-mono text-[11px] text-muted-foreground" x-text="r.sub"></p>
+            </div>
+            <div class="relative h-14 flex-1">
+              <template x-for="m in gantt.months" :key="m.label"><div aria-hidden="true" class="absolute inset-y-0 border-l border-dashed border-border/70" :style="`left: ${m.left}%`"></div></template>
+              <div aria-hidden="true" class="absolute inset-y-0 z-[1] w-0.5 bg-destructive/70" :style="`left: ${gantt.todayPct}%`"></div>
+              <div tabindex="0" :title="r.title" :aria-label="`${r.label}: ${r.title}`"
+                   class="absolute top-1/2 h-6 -translate-y-1/2 overflow-hidden rounded-md bg-muted ring-1 ring-foreground/10 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                   :style="`left: ${r.left}%; width: ${r.width}%`">
+                <div class="h-full" :class="r.tone" :style="`width: ${Math.max(r.progress, 4)}%`"></div>
+                <span class="absolute inset-y-0 left-2 flex items-center font-mono text-[10px] font-semibold text-white [text-shadow:0_0_3px_rgb(0_0_0/0.45)]" x-text="r.progress + '%'"></span>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+    <div class="flex flex-wrap items-center gap-4 border-t px-4 py-2.5 text-xs text-muted-foreground">
+      <span class="inline-flex items-center gap-1.5"><span class="h-3 w-0.5 bg-destructive"></span> Today (<span x-text="fd(TODAY)"></span>)</span>
+      <span class="inline-flex items-center gap-1.5"><span class="size-2.5 rotate-45 bg-warning ring-1 ring-warning-foreground/30"></span> Milestone</span>
+      <template x-for="s in ['To Do', 'In Progress', 'Review', 'Done']" :key="s">
+        <span class="inline-flex items-center gap-1.5"><span class="size-2.5 rounded-sm" :class="TASK_BAR[s]"></span> <span x-text="s"></span></span>
+      </template>
+    </div>
+  </div>
+</template>
+  </div>
+  <div class="card gap-0 self-start p-0">
+  <h2 class="border-b px-4 py-3 font-semibold" x-text="`Team (${team.length})`"></h2>
+  <ul class="divide-y">
+    <template x-for="m in team" :key="m.id">
+      <li class="flex items-center gap-3 px-4 py-3">
+        <span class="relative flex size-8 shrink-0 rounded-full select-none"><span class="flex size-full items-center justify-center rounded-full text-[10px] font-semibold" :class="color(m.id)" x-text="m.initials"></span></span>
+        <div class="min-w-0 flex-1">
+          <p class="flex items-center gap-1.5 truncate text-sm font-medium">
+            <span class="truncate" x-text="m.name"></span>
+            <span x-show="leadOf(project) === m.id" class="shrink-0 rounded bg-primary/12 px-1.5 py-0.5 text-[10px] font-semibold text-primary">Project lead</span>
+          </p>
+          <p class="truncate text-xs text-muted-foreground" x-text="m.company ?? m.title"></p>
+          <p x-show="bossOf(m) && m.role !== 'Client'" class="truncate text-[11px] text-muted-foreground" x-text="'Reports to ' + (bossOf(m)?.name ?? '')"></p>
+          <button x-show="canAssign && m.role === 'Collaborator'" type="button" @click="setLead(m.id)"
+                  class="mt-0.5 cursor-pointer text-[11px] font-medium text-primary hover:underline"
+                  x-text="leadOf(project) === m.id ? 'Remove as project lead' : 'Make project lead'"></button>
+        </div>
+        <span class="rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground" x-text="m.role"></span>
+      </li>
+    </template>
+  </ul>
+</div>
+</div>

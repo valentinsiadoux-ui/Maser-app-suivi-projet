@@ -1,0 +1,22 @@
+<!-- Project picker of the horizontal menu (logic: layout/navigation.js) -->
+<div x-show="projMenu.open" x-cloak @click.outside="projMenu.open = false" role="menu"
+     :style="`position: fixed; top: ${projMenu.y}px; left: ${projMenu.x}px`"
+     class="z-50 max-h-[70dvh] w-72 overflow-y-auto rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10">
+  <template x-for="g in projectGroups" :key="g.id">
+    <div>
+      <button type="button" @click.stop="toggleGroup(g)" :aria-expanded="isOpen(g)" class="flex w-full cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase hover:bg-accent">
+        <svg class="i size-3 transition-transform" :class="isOpen(g) ? '' : '-rotate-90'"><use href="#i-chevron-down"/></svg>
+        <span class="flex-1 text-left"><span x-text="g.label"></span> <span x-show="g.hint" class="text-[9px] font-normal normal-case italic" x-text="'(' + g.hint + ')'"></span></span>
+        <span class="font-mono text-[10px] normal-case" x-text="g.items.length"></span>
+      </button>
+      <div x-show="isOpen(g)" class="mb-1">
+        <template x-for="p in g.items" :key="p.id">
+          <a :href="'project-detail.html?id=' + p.id" role="menuitem" :aria-current="p.id === currentProjectId ? 'page' : null" class="menu-item" :class="p.id === currentProjectId ? 'bg-accent font-medium' : ''">
+            <span class="font-mono text-[10px] text-muted-foreground" x-text="p.code.replace('MSR-', '')"></span>
+            <span class="truncate" x-text="p.name"></span>
+          </a>
+        </template>
+      </div>
+    </div>
+  </template>
+</div>

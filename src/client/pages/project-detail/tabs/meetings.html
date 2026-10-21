@@ -1,0 +1,62 @@
+<!-- Project detail › Meetings tab (logic: tabs/meetings.js + features/) -->
+<div role="tabpanel" class="pt-4">
+  <div x-data="meetingsTab" @keydown.escape.window="closeLocal()" class="flex flex-col gap-6">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <p class="text-sm text-muted-foreground" x-text="upcoming.length + ' upcoming · synced with Google Calendar'"></p>
+      <button x-show="canSchedule" type="button" class="btn btn-primary" @click="openSchedule()"><svg class="i"><use href="#i-calendar-plus"/></svg>Schedule meeting</button>
+      <p x-show="!canSchedule" x-cloak class="text-xs text-muted-foreground">Only managers and project leads can schedule meetings.</p>
+    </div>
+    <section aria-labelledby="upcoming-heading" class="flex flex-col gap-3">
+      <h3 id="upcoming-heading" class="text-sm font-semibold">Upcoming</h3>
+      <p x-show="upcoming.length === 0" class="text-sm text-muted-foreground">No meetings scheduled.</p>
+      <div class="grid gap-3 md:grid-cols-2"><template x-for="m in upcoming" :key="m.id"><div class="card flex-row gap-4 p-4">
+            <div class="flex w-14 shrink-0 flex-col items-center justify-center rounded-lg bg-primary/8 py-2 text-primary"><span class="text-[11px] font-medium uppercase" x-text="moment(m.start).format('MMM')"></span><span class="text-xl leading-none font-semibold tabular-nums" x-text="moment(m.start).format('D')"></span><span class="mt-0.5 text-[10px] text-muted-foreground" x-text="moment(m.start).format('ddd')"></span></div>
+            <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+              <p class="truncate font-medium" x-text="m.title"></p>
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                <span class="inline-flex items-center gap-1"><svg class="i size-3"><use href="#i-clock"/></svg><span x-text="ft(m.start) + ' · ' + m.durationMin + ' min'"></span></span>
+                <span class="inline-flex min-w-0 items-center gap-1"><svg class="i size-3"><use :href="isOnline(m) ? '#i-video' : '#i-map-pin'"/></svg><span class="truncate" x-text="m.location"></span></span>
+              </div>
+              <div class="flex -space-x-1.5">
+                <template x-for="a in stack(m.attendeeIds)" :key="a.id"><span class="inline-flex rounded-full" :title="a.name + ' · ' + a.title"><span class="relative flex size-6 shrink-0 rounded-full ring-2 ring-card select-none"><span class="flex size-full items-center justify-center rounded-full text-[10px] font-semibold" :class="color(a.id)" x-text="a.initials"></span></span></span></template>
+                <span x-show="rest(m.attendeeIds) > 0" class="relative flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] text-muted-foreground ring-2 ring-background" x-text="'+' + rest(m.attendeeIds)"></span>
+              </div>
+            </div>
+          </div></template></div>
+    </section>
+    <section x-show="past.length > 0" x-cloak aria-labelledby="past-heading" class="flex flex-col gap-3">
+      <h3 id="past-heading" class="text-sm font-semibold text-muted-foreground">Past meetings</h3>
+      <div class="grid gap-3 md:grid-cols-2"><template x-for="m in past" :key="m.id"><div class="card flex-row gap-4 p-4 opacity-70">
+            <div class="flex w-14 shrink-0 flex-col items-center justify-center rounded-lg bg-primary/8 py-2 text-primary"><span class="text-[11px] font-medium uppercase" x-text="moment(m.start).format('MMM')"></span><span class="text-xl leading-none font-semibold tabular-nums" x-text="moment(m.start).format('D')"></span><span class="mt-0.5 text-[10px] text-muted-foreground" x-text="moment(m.start).format('ddd')"></span></div>
+            <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+              <p class="truncate font-medium" x-text="m.title"></p>
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                <span class="inline-flex items-center gap-1"><svg class="i size-3"><use href="#i-clock"/></svg><span x-text="ft(m.start) + ' · ' + m.durationMin + ' min'"></span></span>
+                <span class="inline-flex min-w-0 items-center gap-1"><svg class="i size-3"><use :href="isOnline(m) ? '#i-video' : '#i-map-pin'"/></svg><span class="truncate" x-text="m.location"></span></span>
+              </div>
+              <div class="flex -space-x-1.5">
+                <template x-for="a in stack(m.attendeeIds)" :key="a.id"><span class="inline-flex rounded-full" :title="a.name + ' · ' + a.title"><span class="relative flex size-6 shrink-0 rounded-full ring-2 ring-card select-none"><span class="flex size-full items-center justify-center rounded-full text-[10px] font-semibold" :class="color(a.id)" x-text="a.initials"></span></span></span></template>
+                <span x-show="rest(m.attendeeIds) > 0" class="relative flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] text-muted-foreground ring-2 ring-background" x-text="'+' + rest(m.attendeeIds)"></span>
+              </div>
+            </div>
+          </div></template></div>
+    </section>
+
+    <!-- "Schedule a meeting" dialog -->
+    <div x-show="dialog.open" x-cloak class="fixed inset-0 z-[60]" role="presentation">
+      <div x-show="dialog.open" x-transition.opacity.duration.100ms @click="dialog.open = false" class="fixed inset-0 bg-black/10 backdrop-blur-xs"></div>
+      <div x-show="dialog.open" x-transition.opacity.duration.120ms role="dialog" aria-modal="true" aria-labelledby="mt-title" class="fixed top-1/2 left-1/2 grid max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 sm:max-w-lg">
+        <form class="flex flex-col gap-4" @submit.prevent="saveMeeting()">
+          <div class="flex flex-col gap-2"><h2 id="mt-title" class="text-base leading-none font-medium">Schedule a meeting</h2><p class="text-sm text-muted-foreground">The meeting is added here and opened in Google Calendar so you can invite attendees.</p></div>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div class="flex flex-col gap-1.5 sm:col-span-2"><label for="m-title" class="label-text">Meeting title</label><input id="m-title" x-ref="mtitle" x-model="mform.title" class="input" placeholder="e.g. Design review" required></div>
+            <div class="flex flex-col gap-1.5"><label for="m-start" class="label-text">Date &amp; time</label><input id="m-start" type="datetime-local" x-model="mform.start" class="input" required></div>
+            <div class="flex flex-col gap-1.5"><label for="m-duration" class="label-text">Duration</label><select id="m-duration" x-model="mform.duration" class="select"><template x-for="du in DURATIONS" :key="du.v"><option :value="du.v" x-text="du.l"></option></template></select></div>
+            <div class="flex flex-col gap-1.5 sm:col-span-2"><label for="m-location" class="label-text">Location</label><input id="m-location" x-model="mform.location" class="input"></div>
+          </div>
+          <div class="-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end"><button type="button" class="btn btn-outline" @click="dialog.open = false">Cancel</button><button type="submit" class="btn btn-primary" :disabled="!validMeeting"><svg class="i"><use href="#i-calendar-plus"/></svg>Schedule via Google Calendar</button></div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,25 @@
+<!-- Notifications (logic: layout/notifications.js) -->
+<div class="relative" @click.outside="notifOpen = false">
+  <button type="button" @click="notifOpen = !notifOpen; profileOpen = false" class="btn btn-text btn-square relative"
+          :aria-label="`Notifications, ${unread} unread`" :aria-expanded="notifOpen">
+    <svg class="i"><use href="#i-bell"/></svg>
+    <span x-show="unread > 0" class="absolute top-1 right-1 grid size-4 place-items-center rounded-full bg-destructive text-[9px] font-semibold text-white" x-text="unread"></span>
+  </button>
+  <div x-show="notifOpen" x-cloak x-transition.opacity.duration.100ms role="menu"
+       class="absolute top-full right-0 z-50 mt-1 w-80 rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10">
+    <div class="flex items-center justify-between px-1.5 py-1 text-xs font-medium text-muted-foreground">
+      Notifications <span class="font-normal" x-text="unread + ' new'"></span>
+    </div>
+    <div class="-mx-1 my-1 h-px bg-border"></div>
+    <template x-for="n in notifications" :key="n.id">
+      <div role="menuitem" class="flex items-start gap-3 rounded-md px-1.5 py-2 text-sm hover:bg-accent">
+        <span aria-hidden="true" class="mt-1.5 size-2 shrink-0 rounded-full" :class="n.unread ? 'bg-success' : 'bg-transparent'"></span>
+        <span class="min-w-0 flex-1">
+          <span class="block text-sm font-medium" x-text="n.title"></span>
+          <span class="block truncate text-xs text-muted-foreground" x-text="n.detail"></span>
+        </span>
+        <span class="shrink-0 text-[11px] text-muted-foreground" x-text="n.time"></span>
+      </div>
+    </template>
+  </div>
+</div>

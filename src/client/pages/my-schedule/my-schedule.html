@@ -1,0 +1,181 @@
+<!-- Restricted area (Client role) -->
+<div x-show="isClient" x-cloak class="mx-auto flex max-w-md flex-col items-center gap-3 py-24 text-center">
+  <span class="grid size-12 place-items-center rounded-full bg-muted"><svg class="i size-5 text-muted-foreground"><use href="#i-lock"/></svg></span>
+  <h1 class="text-lg font-semibold">Restricted area</h1>
+  <p class="text-sm text-muted-foreground">Client accounts only have access to the Client Space. Switch roles from the profile menu to explore internal views.</p>
+  <a href="client-space.html" class="btn btn-primary">Go to Client Space</a>
+</div>
+
+<!-- ================= MY SCHEDULE ================= -->
+<!-- Restricted access -->
+<div x-show="!isClient && !canSeePage" x-cloak class="mx-auto flex max-w-md flex-col items-center gap-3 py-24 text-center">
+  <span class="grid size-12 place-items-center rounded-full bg-muted"><svg class="i size-5 text-muted-foreground"><use href="#i-lock"/></svg></span>
+  <h1 class="text-lg font-semibold">Collaborators only</h1>
+  <p class="text-sm text-muted-foreground">This page is not available for your current role. Switch roles from the profile menu to view it.</p>
+</div>
+
+<div x-show="!isClient && canSeePage" class="mx-auto max-w-[1600px]">
+
+  <div class="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <div class="min-w-0">
+      <h1 class="text-2xl font-semibold tracking-tight text-balance">My Schedule</h1>
+      <p class="mt-1 max-w-2xl text-sm text-muted-foreground text-pretty" x-text="pageDescription"></p>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="mb-4 flex flex-wrap items-center gap-2">
+    <div role="group" aria-label="Schedule view" class="inline-flex h-8 items-center rounded-lg border bg-card p-0.5">
+      <button type="button" :aria-pressed="view === 'timeline'" aria-label="Timeline" @click="view = 'timeline'"
+              class="inline-flex h-full items-center gap-1.5 rounded-md px-2.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+              :class="view === 'timeline' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'">
+        <svg class="i size-4"><use href="#i-chart-gantt"/></svg><span class="hidden sm:inline">Timeline</span>
+      </button>
+      <button type="button" :aria-pressed="view === 'list'" aria-label="List" @click="view = 'list'"
+              class="inline-flex h-full items-center gap-1.5 rounded-md px-2.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+              :class="view === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'">
+        <svg class="i size-4"><use href="#i-list"/></svg><span class="hidden sm:inline">List</span>
+      </button>
+    </div>
+    <select x-model="filter" aria-label="Filter by project" class="select h-8 w-64">
+      <template x-for="o in filterOptions" :key="o.value"><option :value="o.value" x-text="o.label"></option></template>
+    </select>
+    <p class="ml-auto text-xs text-muted-foreground"
+       x-text="sched.count + ' assignment' + (sched.count === 1 ? '' : 's') + (sched.people > 1 ? ' · ' + sched.current + ' of ' + sched.people + ' people currently assigned' : '')"></p>
+  </div>
+
+  <!-- No assignment -->
+  <div x-show="sched.count === 0" x-cloak class="rounded-lg border border-dashed bg-card/50 px-6 py-12 text-center">
+    <p class="text-sm font-medium">No assignments for this selection</p>
+    <p class="mt-1 text-sm text-muted-foreground">Try another project filter.</p>
+  </div>
+
+  <!-- ======== Timeline ======== -->
+  <div x-show="sched.count > 0 && view === 'timeline'" class="card gap-0 overflow-hidden p-0">
+    <div class="overflow-x-auto">
+      <div :style="`min-width: ${(sched.minWidth || 720) + 240}px`">
+        <div class="flex border-b bg-muted/40">
+          <div class="sticky left-0 z-10 w-60 shrink-0 border-r bg-muted px-4 py-2.5 text-xs font-medium text-muted-foreground">Team member</div>
+          <div class="relative h-10 flex-1">
+            <template x-for="m in (sched.months || [])" :key="m.label">
+              <div class="absolute inset-y-0 flex items-center border-l px-2 font-mono text-xs text-muted-foreground" :style="`left: ${m.left}%`" x-text="m.label"></div>
+            </template>
+          </div>
+        </div>
+
+        <template x-for="r in (sched.tl || [])" :key="r.member.id">
+          <div class="flex border-b last:border-b-0">
+            <div class="sticky left-0 z-10 flex w-60 shrink-0 items-center gap-3 border-r bg-card px-4 py-2.5">
+              <span class="relative flex size-8 shrink-0 rounded-full select-none"><span class="flex size-full items-center justify-center rounded-full text-[10px] font-semibold" :class="color(r.member.id)" x-text="r.member.initials"></span></span>
+              <div class="min-w-0">
+                <p class="truncate text-sm font-medium" x-text="r.member.name"></p>
+                <p class="truncate text-[11px] text-muted-foreground" x-text="r.member.title"></p>
+                <p class="text-[11px] font-medium" :class="r.now ? 'text-success-ink' : 'text-muted-foreground'" x-text="r.status"></p>
+              </div>
+            </div>
+            <div class="relative flex-1" :style="`height: ${r.height}px`">
+              <template x-for="m in sched.months" :key="m.label"><div aria-hidden="true" class="absolute inset-y-0 border-l border-dashed border-border/70" :style="`left: ${m.left}%`"></div></template>
+              <div aria-hidden="true" class="absolute inset-y-0 z-[1] w-0.5 bg-destructive/70" :style="`left: ${sched.todayPct}%`"></div>
+              <span x-show="r.bars.length === 0" class="absolute inset-y-0 left-3 flex items-center text-xs text-muted-foreground">No assignment</span>
+              <template x-for="b in r.bars" :key="b.key">
+                <a :href="'project-detail.html?id=' + b.p.id" :title="b.title" :aria-label="b.aria"
+                   class="absolute z-[2] flex h-6 items-center overflow-hidden rounded-md px-2 font-mono text-[10px] font-semibold text-white ring-1 ring-foreground/10 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                   :style="`left: ${b.left}%; width: ${b.width}%; top: ${b.top}px; background: ${b.bg}; text-shadow: 0 0 3px rgb(0 0 0 / 0.45)`">
+                  <span class="truncate" x-text="b.p.code"></span>
+                </a>
+              </template>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t px-4 py-2.5 text-xs text-muted-foreground">
+      <span class="inline-flex items-center gap-1.5"><span class="h-3 w-0.5 bg-destructive"></span> Today (<span x-text="fd(TODAY)"></span>)</span>
+      <template x-for="p in (sched.legend || [])" :key="p.id">
+        <span class="inline-flex items-center gap-1.5"><span class="size-2.5 rounded-sm" :style="`background: ${colorOf(p.id)}`"></span> <span x-text="p.code"></span></span>
+      </template>
+      <span class="inline-flex items-center gap-1.5"><span class="size-2.5 rounded-sm" style="background: repeating-linear-gradient(135deg, var(--muted-foreground) 0 3px, transparent 3px 6px)"></span> Assigned, no task yet</span>
+    </div>
+  </div>
+
+  <!-- ======== List ======== -->
+  <div x-show="sched.count > 0 && view === 'list'" x-cloak class="card gap-0 overflow-hidden p-0">
+    <div class="relative w-full overflow-x-auto">
+      <table class="w-full caption-bottom text-sm">
+        <thead class="[&_tr]:border-b">
+          <tr class="border-b bg-muted/40 transition-colors hover:bg-muted/40">
+            <th class="h-10 px-4 text-left align-middle font-medium whitespace-nowrap text-foreground">Team member</th>
+            <th class="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground">Project</th>
+            <th class="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground">Period</th>
+            <th class="h-10 px-2 text-right align-middle font-medium whitespace-nowrap text-foreground">Tasks</th>
+            <th class="h-10 px-2 pr-4 text-left align-middle font-medium whitespace-nowrap text-foreground">Status</th>
+          </tr>
+        </thead>
+        <tbody class="[&_tr:last-child]:border-0">
+          <template x-for="a in (sched.flat || [])" :key="a.memberId + a.projectId">
+            <tr class="border-b transition-colors hover:bg-muted/50">
+              <td class="p-2 px-4 align-middle whitespace-nowrap">
+                <span class="inline-flex items-center gap-2">
+                  <span class="relative flex size-6 shrink-0 rounded-full select-none"><span class="flex size-full items-center justify-center rounded-full text-[10px] font-semibold" :class="color(a.member.id)" x-text="a.member.initials"></span></span>
+                  <span>
+                    <span class="block text-sm font-medium" x-text="a.member.name"></span>
+                    <span class="block text-xs text-muted-foreground" x-text="a.member.title"></span>
+                  </span>
+                </span>
+              </td>
+              <td class="p-2 align-middle whitespace-nowrap">
+                <a :href="'project-detail.html?id=' + a.p.id" class="inline-flex items-center gap-2 font-medium hover:text-primary hover:underline">
+                  <span aria-hidden="true" class="size-2.5 rounded-sm" :style="`background: ${colorOf(a.p.id)}`"></span>
+                  <span x-text="a.p.name"></span>
+                </a>
+                <span class="block font-mono text-[11px] text-muted-foreground" x-text="a.p.code"></span>
+              </td>
+              <td class="p-2 align-middle text-sm whitespace-nowrap">
+                <span x-text="fd(a.start, 'D MMM YYYY') + ' → ' + fd(a.end, 'D MMM YYYY')"></span>
+                <span x-show="!a.fromTasks" class="block text-[11px] text-muted-foreground">Project period (no task assigned yet)</span>
+              </td>
+              <td class="p-2 text-right align-middle whitespace-nowrap tabular-nums" x-text="a.tasks"></td>
+              <td class="p-2 pr-4 align-middle whitespace-nowrap">
+                <span class="badge badge-outline font-medium" :class="PHASE_TONE[a.ph]" x-text="a.ph"></span>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ======== My agenda ======== -->
+  <section aria-labelledby="my-agenda" class="mt-8 flex flex-col gap-3">
+    <h2 id="my-agenda" class="font-semibold">My agenda</h2>
+
+    <div x-show="agenda.length === 0" x-cloak class="rounded-lg border border-dashed bg-card/50 px-6 py-12 text-center">
+      <p class="text-sm font-medium">Nothing planned</p>
+      <p class="mt-1 text-sm text-muted-foreground">You have no open tasks or upcoming meetings.</p>
+    </div>
+
+    <div x-show="agenda.length > 0" class="card gap-0 overflow-hidden p-0">
+      <template x-for="g in agenda" :key="g.date">
+        <div class="flex flex-col gap-3 border-b px-4 py-3 last:border-b-0 sm:flex-row sm:gap-6">
+          <div class="w-32 shrink-0">
+            <p class="text-sm font-medium" :class="g.today ? 'text-primary' : ''" x-text="g.label"></p>
+            <p x-show="g.overdue" class="text-xs text-destructive-ink">Overdue</p>
+          </div>
+          <ul class="flex min-w-0 flex-1 flex-col gap-2">
+            <template x-for="i in g.items" :key="i.key">
+              <li class="flex items-start gap-3">
+                <span aria-hidden="true" class="mt-1.5 size-2 shrink-0 rounded-full" :class="dotClass(i)"></span>
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-medium" x-text="i.title"></p>
+                  <p class="truncate text-xs text-muted-foreground">
+                    <span x-text="i.sub"></span><template x-if="getProject(i.projectId)"><span> · <a :href="'project-detail.html?id=' + i.projectId" class="font-mono hover:text-primary hover:underline" x-text="getProject(i.projectId).code"></a></span></template>
+                  </p>
+                </div>
+              </li>
+            </template>
+          </ul>
+        </div>
+      </template>
+    </div>
+  </section>
+</div>

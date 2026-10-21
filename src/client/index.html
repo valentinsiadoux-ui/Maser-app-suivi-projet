@@ -8,12 +8,12 @@
   <title>Maser Engineering</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23e63641'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='18' font-weight='700' text-anchor='middle' fill='white'%3EM%3C/text%3E%3C/svg%3E">
 
-  <!-- Polices -->
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
-  <!-- Préférences d'affichage (thème, palette, taille, position du menu) appliquées avant le premier rendu -->
+  <!-- Display preferences applied before the first paint (same logic as applyPrefs() in core/preferences.js) -->
   <script>
     try {
       var p = JSON.parse(localStorage.getItem('maser-prefs-v1') || '{}'), e = document.documentElement;
@@ -28,100 +28,117 @@
 </head>
 
 <body x-data="app" @keydown.escape.window="closeAll()">
+  <!--
+    Page skeleton. Fragments are inserted at build time by "@include path" comments
+    (paths from src/client/). Only the current page is rendered (<template x-if>).
+    Each page: pages/<page>/<page>.html (markup) + <page>.js (logic), listed in pages/index.js.
+    Menus and dialogs of a page (<page>.overlays.html) are moved to the end of <body> (x-teleport).
+  -->
 
-  <!-- @include partials/sprite.html -->
+  <!-- @include layout/icons.html -->
 
-  <!-- ============ Connexion (mise en page sans menu) ============ -->
+  <!-- ============ Sign in (layout without menu) ============ -->
   <template x-if="route.name === 'login'">
     <div x-data="loginPage" class="contents">
-      <!-- @include partials/login.html -->
+      <!-- @include pages/login/login.html -->
     </div>
   </template>
 
-  <!-- ============ Application : menu, barre supérieure, page courante ============ -->
+  <!-- ============ App: menu, header, current page ============ -->
   <template x-if="route.name && route.name !== 'login'">
     <div class="contents">
-      <!-- @include partials/shell-start.html -->
-      <main class="flex-1 px-4 py-6 md:px-8 md:py-8" :class="layout === 'top' ? 'mx-auto w-full max-w-[110rem]' : ''">
-          <template x-if="route.name === 'dashboard'">
-            <div x-data="dashboardPage" class="contents">
-              <!-- @include partials/pages/dashboard.html -->
-            </div>
-          </template>
-          <template x-if="route.name === 'projects'">
-            <div x-data="projectsPage" class="contents">
-              <!-- @include partials/pages/projects.html -->
-            </div>
-          </template>
-          <template x-if="route.name === 'project-detail'">
-            <div x-data="projectDetailPage" class="contents">
-              <!-- @include partials/pages/project-detail.html -->
-            </div>
-          </template>
-          <template x-if="route.name === 'tasks'">
-            <div x-data="tasksPage" class="contents">
-              <!-- @include partials/pages/tasks.html -->
+      <div :class="layout === 'top' ? 'flex min-h-dvh flex-col' : 'flex min-h-dvh'">
+
+        <!-- @include layout/sidebar.html -->
+
+        <div :class="layout === 'top' ? 'flex min-w-0 flex-1 flex-col' : 'flex min-w-0 flex-1 flex-col lg:pl-64'">
+
+          <!-- @include layout/header.html -->
+
+          <!-- Current page -->
+          <main class="flex-1 px-4 py-6 md:px-8 md:py-8" :class="layout === 'top' ? 'mx-auto w-full max-w-[110rem]' : ''">
+            <template x-if="route.name === 'dashboard'">
+              <div x-data="dashboardPage" class="contents">
+                <!-- @include pages/dashboard/dashboard.html -->
+              </div>
+            </template>
+            <template x-if="route.name === 'projects'">
+              <div x-data="projectsPage" class="contents">
+                <!-- @include pages/projects/projects.html -->
+              </div>
+            </template>
+            <template x-if="route.name === 'project-detail'">
+              <div x-data="projectDetailPage" class="contents">
+                <!-- @include pages/project-detail/project-detail.html -->
+              </div>
+            </template>
+            <template x-if="route.name === 'tasks'">
+              <div x-data="tasksPage" class="contents">
+                <!-- @include pages/tasks/tasks.html -->
               <template x-teleport="body"><div>
-                <!-- @include partials/pages/tasks.overlays.html -->
+                <!-- @include pages/tasks/tasks.overlays.html -->
               </div></template>
-            </div>
-          </template>
-          <template x-if="route.name === 'tests'">
-            <div x-data="testsPage" class="contents">
-              <!-- @include partials/pages/tests.html -->
+              </div>
+            </template>
+            <template x-if="route.name === 'tests'">
+              <div x-data="testsPage" class="contents">
+                <!-- @include pages/tests/tests.html -->
               <template x-teleport="body"><div>
-                <!-- @include partials/pages/tests.overlays.html -->
+                <!-- @include pages/tests/tests.overlays.html -->
               </div></template>
-            </div>
-          </template>
-          <template x-if="route.name === 'notes'">
-            <div x-data="notesPage" class="contents">
-              <!-- @include partials/pages/notes.html -->
-            </div>
-          </template>
-          <template x-if="route.name === 'amendments'">
-            <div x-data="amendmentsPage" class="contents">
-              <!-- @include partials/pages/amendments.html -->
+              </div>
+            </template>
+            <template x-if="route.name === 'notes'">
+              <div x-data="notesPage" class="contents">
+                <!-- @include pages/notes/notes.html -->
+              </div>
+            </template>
+            <template x-if="route.name === 'amendments'">
+              <div x-data="amendmentsPage" class="contents">
+                <!-- @include pages/amendments/amendments.html -->
               <template x-teleport="body"><div>
-                <!-- @include partials/pages/amendments.overlays.html -->
+                <!-- @include pages/amendments/amendments.overlays.html -->
               </div></template>
-            </div>
-          </template>
-          <template x-if="route.name === 'meetings'">
-            <div x-data="meetingsPage" class="contents">
-              <!-- @include partials/pages/meetings.html -->
+              </div>
+            </template>
+            <template x-if="route.name === 'meetings'">
+              <div x-data="meetingsPage" class="contents">
+                <!-- @include pages/meetings/meetings.html -->
               <template x-teleport="body"><div>
-                <!-- @include partials/pages/meetings.overlays.html -->
+                <!-- @include pages/meetings/meetings.overlays.html -->
               </div></template>
-            </div>
-          </template>
-          <template x-if="route.name === 'team-schedule'">
-            <div x-data="teamSchedulePage" class="contents">
-              <!-- @include partials/pages/team-schedule.html -->
-            </div>
-          </template>
-          <template x-if="route.name === 'organisation'">
-            <div x-data="organisationPage" class="contents">
-              <!-- @include partials/pages/organisation.html -->
-            </div>
-          </template>
-          <template x-if="route.name === 'my-schedule'">
-            <div x-data="mySchedulePage" class="contents">
-              <!-- @include partials/pages/my-schedule.html -->
-            </div>
-          </template>
-          <template x-if="route.name === 'client-space'">
-            <div x-data="clientSpacePage" class="contents">
-              <!-- @include partials/pages/client-space.html -->
-            </div>
-          </template>
-          <template x-if="route.name === 'settings'">
-            <div x-data="settingsPage" class="contents">
-              <!-- @include partials/pages/settings.html -->
-            </div>
-          </template>
-      </main>
-      <!-- @include partials/shell-end.html -->
+              </div>
+            </template>
+            <template x-if="route.name === 'team-schedule'">
+              <div x-data="teamSchedulePage" class="contents">
+                <!-- @include pages/team-schedule/team-schedule.html -->
+              </div>
+            </template>
+            <template x-if="route.name === 'organisation'">
+              <div x-data="organisationPage" class="contents">
+                <!-- @include pages/organisation/organisation.html -->
+              </div>
+            </template>
+            <template x-if="route.name === 'my-schedule'">
+              <div x-data="mySchedulePage" class="contents">
+                <!-- @include pages/my-schedule/my-schedule.html -->
+              </div>
+            </template>
+            <template x-if="route.name === 'client-space'">
+              <div x-data="clientSpacePage" class="contents">
+                <!-- @include pages/client-space/client-space.html -->
+              </div>
+            </template>
+            <template x-if="route.name === 'settings'">
+              <div x-data="settingsPage" class="contents">
+                <!-- @include pages/settings/settings.html -->
+              </div>
+            </template>
+          </main>
+        </div>
+      </div>
+
+      <!-- @include layout/create-project.html -->
     </div>
   </template>
 

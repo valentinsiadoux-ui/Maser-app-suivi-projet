@@ -1,0 +1,116 @@
+<!-- Restricted area (Client role) -->
+<div x-show="isClient" x-cloak class="mx-auto flex max-w-md flex-col items-center gap-3 py-24 text-center">
+  <span class="grid size-12 place-items-center rounded-full bg-muted"><svg class="i size-5 text-muted-foreground"><use href="#i-lock"/></svg></span>
+  <h1 class="text-lg font-semibold">Restricted area</h1>
+  <p class="text-sm text-muted-foreground">Client accounts only have access to the Client Space. Switch roles from the profile menu to explore internal views.</p>
+  <a href="client-space.html" class="btn btn-primary">Go to Client Space</a>
+</div>
+
+<!-- ================= PROJECT DETAIL ================= -->
+<!-- Project not found -->
+<div x-show="!isClient && !project" x-cloak class="mx-auto max-w-xl py-16">
+  <div class="rounded-lg border border-dashed bg-card/50 px-6 py-12 text-center">
+    <p class="text-sm font-medium">Project not found</p>
+    <p class="mt-1 text-sm text-muted-foreground">It may have been archived or removed.</p>
+  </div>
+  <div class="mt-4 text-center"><a href="projects.html" class="btn btn-outline">Back to projects</a></div>
+</div>
+
+<!-- Access denied -->
+<div x-show="!isClient && project && !canView" x-cloak class="mx-auto max-w-xl py-16">
+  <div class="rounded-lg border border-dashed bg-card/50 px-6 py-12 text-center">
+    <p class="text-sm font-medium">You don't have access to this project</p>
+    <p class="mt-1 text-sm text-muted-foreground">Only members of the project team (and their supervisors) can open it.</p>
+  </div>
+  <div class="mt-4 text-center"><a href="projects.html" class="btn btn-outline">Back to projects</a></div>
+</div>
+
+<template x-if="!isClient && project && canView">
+  <div class="mx-auto flex max-w-7xl flex-col gap-6">
+
+    <!-- Header -->
+    <div>
+      <a href="projects.html" class="btn btn-text btn-sm -ml-2 mb-3 text-muted-foreground">
+        <svg class="i"><use href="#i-chevron-left"/></svg>
+        Projects
+      </a>
+      <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div class="min-w-0">
+          <p class="font-mono text-xs text-muted-foreground" x-text="project.code"></p>
+          <h1 class="mt-1 text-2xl font-semibold tracking-tight text-balance" x-text="project.name"></h1>
+          <div class="mt-2 flex flex-wrap items-center gap-2">
+            <span class="badge badge-outline gap-1.5 font-medium" :class="TONES[PROJECT_TONE[project.status]]">
+              <span aria-hidden="true" class="size-1.5 rounded-full bg-current"></span><span x-text="project.status"></span>
+            </span>
+            <span class="badge badge-outline font-medium" :class="TONES[PRIORITY_TONE[project.priority]]" x-text="project.priority"></span>
+            <span x-show="project.status === 'In Progress'" class="badge badge-outline gap-1.5 font-medium" :class="TONES[DEADLINE[deadlineState(project.endDate, false)][1]]">
+              <span aria-hidden="true" class="size-1.5 rounded-full bg-current"></span><span x-text="DEADLINE[deadlineState(project.endDate, false)][0]"></span>
+            </span>
+            <template x-for="tg in project.tags" :key="tg"><span class="badge badge-secondary rounded-md font-normal" x-text="tg"></span></template>
+            <span x-show="!editable" title="You are not on this project's team: you can view it but not modify tasks, tests or notes."
+                  class="inline-flex items-center gap-1 rounded-md border border-dashed px-2 py-0.5 text-xs font-medium text-muted-foreground">View only</span>
+          </div>
+        </div>
+        <div class="card w-full gap-2 px-4 py-3 md:w-64">
+          <div class="flex items-baseline justify-between">
+            <span class="text-xs text-muted-foreground">Overall progress</span>
+            <span class="font-mono text-lg font-semibold" x-text="progress(project) + '%'"></span>
+          </div>
+          <div role="progressbar" :aria-valuenow="progress(project)" aria-valuemin="0" aria-valuemax="100" class="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div class="h-full rounded-full transition-all" :class="progress(project) === 100 ? 'bg-success' : 'bg-primary'" :style="`width: ${progress(project)}%`"></div>
+          </div>
+          <p class="text-xs text-muted-foreground" x-text="remaining"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div>
+      <div class="-mx-4 overflow-x-auto border-b px-4 md:mx-0 md:px-0">
+        <div role="tablist" class="inline-flex h-10 w-fit items-center justify-center gap-1 bg-transparent p-[3px] text-muted-foreground">
+          <template x-for="t in tabs" :key="t.id">
+            <button type="button" role="tab" :aria-selected="tab === t.id" @click="setTab(t.id)"
+                    class="relative inline-flex h-[calc(100%-1px)] flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-transparent px-3 py-0.5 text-sm font-medium whitespace-nowrap transition-all outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 after:absolute after:inset-x-0 after:bottom-[-5px] after:h-0.5 after:bg-primary after:transition-opacity"
+                    :class="tab === t.id ? 'text-foreground after:opacity-100' : 'text-foreground/60 after:opacity-0'" x-text="t.label"></button>
+          </template>
+        </div>
+      </div>
+
+      <!-- Overview -->
+      <template x-if="tab === 'overview'">
+        <!-- @include pages/project-detail/tabs/overview.html -->
+      </template>
+
+      <!-- Gantt -->
+      <template x-if="tab === 'gantt'">
+        <!-- @include pages/project-detail/tabs/gantt.html -->
+      </template>
+
+      <!-- Team -->
+      <template x-if="tab === 'team'">
+        <!-- @include pages/project-detail/tabs/team.html -->
+      </template>
+
+      <!-- Tasks, Tests, Notes, Amendments and Meetings tabs: same logic as the standalone pages (features/), limited to this project -->
+      <template x-if="tab === 'tasks'">
+        <!-- @include pages/project-detail/tabs/tasks.html -->
+      </template>
+
+      <template x-if="tab === 'tests'">
+        <!-- @include pages/project-detail/tabs/tests.html -->
+      </template>
+
+      <template x-if="tab === 'notes'">
+        <!-- @include pages/project-detail/tabs/notes.html -->
+      </template>
+
+      <template x-if="tab === 'amendments'">
+        <!-- @include pages/project-detail/tabs/amendments.html -->
+      </template>
+
+      <template x-if="tab === 'meetings'">
+        <!-- @include pages/project-detail/tabs/meetings.html -->
+      </template>
+    </div>
+  </div>
+</template>

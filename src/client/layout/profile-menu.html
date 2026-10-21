@@ -1,0 +1,59 @@
+<!-- Profile menu: role, person, menu position, settings (logic: layout/profile-menu.js) -->
+<div class="relative" @click.outside="profileOpen = false">
+  <button type="button" @click="profileOpen = !profileOpen; notifOpen = false" class="btn btn-text h-10 gap-2.5 px-2" aria-label="Open profile menu" :aria-expanded="profileOpen">
+    <span class="relative flex size-8 shrink-0 rounded-full select-none">
+      <span class="flex size-full items-center justify-center rounded-full text-[10px] font-semibold" :class="color(user.id)" x-text="user.initials"></span>
+    </span>
+    <span class="hidden flex-col items-start leading-tight sm:flex">
+      <span class="text-sm font-medium" x-text="user.name"></span>
+      <span class="text-[11px] font-normal text-muted-foreground" x-text="user.title"></span>
+    </span>
+    <span class="badge hidden rounded-md border-transparent md:inline-flex" :class="ROLE_TONE[role]" x-text="role"></span>
+    <svg class="i text-muted-foreground"><use href="#i-chevron-down"/></svg>
+  </button>
+
+  <div x-show="profileOpen" x-cloak x-transition.opacity.duration.100ms role="menu"
+       class="absolute top-full right-0 z-50 mt-1 max-h-[calc(100dvh-5rem)] w-64 overflow-y-auto rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10">
+    <div class="px-1.5 py-1 text-xs font-medium text-muted-foreground">
+      <span class="block text-sm font-medium text-foreground" x-text="user.name"></span>
+      <span class="block text-xs font-normal" x-text="(user.company || 'Maser Engineering') + ' · ' + role"></span>
+    </div>
+    <div class="-mx-1 my-1 h-px bg-border"></div>
+
+    <div class="flex items-center gap-1.5 px-1.5 py-1 text-xs font-medium text-muted-foreground"><svg class="i size-3.5"><use href="#i-shield-check"/></svg>View as role</div>
+    <template x-for="r in roles" :key="r.role">
+      <button type="button" role="menuitemradio" :aria-checked="role === r.role" @click="switchRole(r.role)" class="menu-item relative py-1 pr-8">
+        <span class="flex flex-col">
+          <span x-text="r.role"></span>
+          <span class="text-xs text-muted-foreground" x-text="r.description"></span>
+        </span>
+        <svg x-show="role === r.role" class="i absolute right-2 size-4"><use href="#i-check"/></svg>
+      </button>
+    </template>
+
+    <template x-if="sameRole.length > 1">
+      <div>
+        <div class="-mx-1 my-1 h-px bg-border"></div>
+        <div class="flex items-center gap-1.5 px-1.5 py-1 text-xs font-medium text-muted-foreground"><svg class="i size-3.5"><use href="#i-users"/></svg><span x-text="`Switch person (${role})`"></span></div>
+        <template x-for="m in sameRole" :key="m.id">
+          <button type="button" role="menuitemradio" :aria-checked="user.id === m.id" @click="switchUser(m.id)" class="menu-item relative py-1 pr-8">
+            <span class="flex flex-col">
+              <span x-text="m.name"></span>
+              <span class="text-xs text-muted-foreground" x-text="m.title"></span>
+            </span>
+            <svg x-show="user.id === m.id" class="i absolute right-2 size-4"><use href="#i-check"/></svg>
+          </button>
+        </template>
+      </div>
+    </template>
+
+    <div class="-mx-1 my-1 h-px bg-border"></div>
+    <div class="flex items-center gap-1.5 px-1.5 py-1 text-xs font-medium text-muted-foreground"><svg class="i size-3.5"><use href="#i-layout-grid"/></svg>Menu position</div>
+    <button type="button" role="menuitemradio" :aria-checked="layout === 'side'" @click="setLayout('side')" class="menu-item relative py-1 pr-8">Side menu<svg x-show="layout === 'side'" class="i absolute right-2 size-4"><use href="#i-check"/></svg></button>
+    <button type="button" role="menuitemradio" :aria-checked="layout === 'top'" @click="setLayout('top')" class="menu-item relative py-1 pr-8">Top menu<svg x-show="layout === 'top'" class="i absolute right-2 size-4"><use href="#i-check"/></svg></button>
+
+    <div class="-mx-1 my-1 h-px bg-border"></div>
+    <a href="settings.html" role="menuitem" class="menu-item"><svg class="i size-4"><use href="#i-settings"/></svg>Settings</a>
+    <a href="login.html" role="menuitem" class="menu-item"><svg class="i size-4"><use href="#i-log-out"/></svg>Sign out</a>
+  </div>
+</div>

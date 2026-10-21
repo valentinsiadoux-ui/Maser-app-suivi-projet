@@ -1,0 +1,27 @@
+<!-- Project detail › Team tab -->
+<div role="tabpanel" class="pt-4">
+  <div class="max-w-xl">
+    <div class="card gap-0 self-start p-0">
+  <h2 class="border-b px-4 py-3 font-semibold" x-text="`Team (${team.length})`"></h2>
+  <ul class="divide-y">
+    <template x-for="m in team" :key="m.id">
+      <li class="flex items-center gap-3 px-4 py-3">
+        <span class="relative flex size-8 shrink-0 rounded-full select-none"><span class="flex size-full items-center justify-center rounded-full text-[10px] font-semibold" :class="color(m.id)" x-text="m.initials"></span></span>
+        <div class="min-w-0 flex-1">
+          <p class="flex items-center gap-1.5 truncate text-sm font-medium">
+            <span class="truncate" x-text="m.name"></span>
+            <span x-show="leadOf(project) === m.id" class="shrink-0 rounded bg-primary/12 px-1.5 py-0.5 text-[10px] font-semibold text-primary">Project lead</span>
+          </p>
+          <p class="truncate text-xs text-muted-foreground" x-text="m.company ?? m.title"></p>
+          <p x-show="bossOf(m) && m.role !== 'Client'" class="truncate text-[11px] text-muted-foreground" x-text="'Reports to ' + (bossOf(m)?.name ?? '')"></p>
+          <button x-show="canAssign && m.role === 'Collaborator'" type="button" @click="setLead(m.id)"
+                  class="mt-0.5 cursor-pointer text-[11px] font-medium text-primary hover:underline"
+                  x-text="leadOf(project) === m.id ? 'Remove as project lead' : 'Make project lead'"></button>
+        </div>
+        <span class="rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground" x-text="m.role"></span>
+      </li>
+    </template>
+  </ul>
+</div>
+  </div>
+</div>

@@ -1,0 +1,70 @@
+<!-- Project detail › Notes tab (logic: tabs/notes.js + features/) -->
+<div role="tabpanel" class="pt-4">
+  <div x-data="notesTab" class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+    <div class="flex min-w-0 flex-col gap-4">
+      <div x-show="editable" class="card gap-3 p-4">
+        <label for="new-note" class="text-sm font-medium">Add a note</label>
+        <textarea id="new-note" rows="3" x-model="draft" @keydown.enter="($event.metaKey || $event.ctrlKey) && !$event.isComposing && post()" placeholder="Technical observation, site visit report, decision..." class="textarea"></textarea>
+        <div class="flex flex-wrap items-center gap-2">
+          <select x-model="category" aria-label="Note category" class="select w-auto min-w-32"><template x-for="c in CATEGORIES" :key="c"><option :value="c" x-text="c"></option></template></select>
+          <span class="hidden text-xs text-muted-foreground sm:inline">⌘ + Enter to post</span>
+          <button type="button" class="btn btn-primary ml-auto" @click="post()" :disabled="!draft.trim()"><svg class="i"><use href="#i-send"/></svg>Post note</button>
+        </div>
+      </div>
+      <p x-show="!editable" x-cloak class="rounded-lg border border-dashed px-4 py-3 text-sm text-muted-foreground">View only — you are not on this project's team, so you cannot add notes.</p>
+
+      <ol class="flex flex-col gap-3">
+        <template x-for="n in visibleNotes" :key="n.id">
+          <li>
+            <div class="card gap-3 p-4">
+              <div class="flex items-start gap-3">
+                <span class="relative flex size-8 shrink-0 rounded-full select-none"><span class="flex size-full items-center justify-center rounded-full text-[10px] font-semibold" :class="color(n.authorId)" x-text="getMember(n.authorId)?.initials"></span></span>
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span class="text-sm font-medium" x-text="getMember(n.authorId)?.name"></span>
+                    <span x-show="getMember(n.authorId)?.role === 'Client'" class="text-xs text-muted-foreground" x-text="'(' + getMember(n.authorId)?.company + ')'"></span>
+                    <span class="rounded px-1.5 py-0.5 text-[11px] font-medium" :class="CAT_TONE[n.category]" x-text="n.category"></span>
+                    <time class="text-xs text-muted-foreground" :datetime="n.createdAt" x-text="fdt(n.createdAt)"></time>
+                  </div>
+                </div>
+                <div x-show="canEditNote(n) && editing.id !== n.id" class="flex gap-0.5">
+                  <button type="button" aria-label="Edit note" @click="startEdit(n)" class="grid size-7 cursor-pointer place-items-center rounded-md hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"><svg class="i size-4"><use href="#i-pencil"/></svg></button>
+                  <button type="button" aria-label="Delete note" @click="remove(n)" class="grid size-7 cursor-pointer place-items-center rounded-md hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"><svg class="i size-4"><use href="#i-trash-2"/></svg></button>
+                </div>
+              </div>
+              <div x-show="editing.id === n.id" x-cloak class="flex flex-col gap-2 pl-11">
+                <textarea aria-label="Edit note content" rows="3" x-model="editing.content" class="textarea"></textarea>
+                <div class="flex justify-end gap-2"><button type="button" class="btn btn-outline btn-sm" @click="editing = { id: null, content: '' }">Cancel</button><button type="button" class="btn btn-primary btn-sm" :disabled="!editing.content.trim()" @click="saveEdit()">Save</button></div>
+              </div>
+              <p x-show="editing.id !== n.id" class="pl-11 text-sm leading-relaxed text-pretty" x-text="n.content"></p>
+              <div class="pl-11">
+                <button type="button" @click="toggleComments(n)" :aria-expanded="!!openComments[n.id]" class="btn btn-text btn-sm -ml-2 h-6 gap-1 px-2 text-xs text-muted-foreground"><svg class="i"><use href="#i-message-square"/></svg><span x-text="(n.comments || []).length > 0 ? (n.comments.length + ' comment' + (n.comments.length > 1 ? 's' : '')) : 'Comment'"></span></button>
+                <div x-show="openComments[n.id]" x-cloak class="mt-2 flex flex-col gap-3 border-l-2 pl-4">
+                  <template x-for="c in (n.comments || [])" :key="c.id">
+                    <div class="flex gap-2.5">
+                      <span class="relative flex size-6 shrink-0 rounded-full select-none"><span class="flex size-full items-center justify-center rounded-full text-[10px] font-semibold" :class="color(c.authorId)" x-text="getMember(c.authorId)?.initials"></span></span>
+                      <div class="min-w-0"><p class="text-xs"><span class="font-medium" x-text="getMember(c.authorId)?.name"></span> <span class="text-muted-foreground" x-text="fdt(c.createdAt)"></span></p><p class="text-sm" x-text="c.content"></p></div>
+                    </div>
+                  </template>
+                  <div x-show="canComment()" class="flex items-start gap-2">
+                    <textarea aria-label="Write a comment" rows="1" x-model="drafts[n.id]" @keydown.enter="if (!$event.shiftKey && !$event.isComposing) { $event.preventDefault(); postComment(n) }" placeholder="Write a comment..." class="textarea min-h-8 py-1.5"></textarea>
+                    <button type="button" class="btn btn-primary btn-square shrink-0" aria-label="Post comment" @click="postComment(n)" :disabled="!(drafts[n.id] || '').trim()"><svg class="i"><use href="#i-send"/></svg></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </li>
+        </template>
+      </ol>
+      <p x-show="visibleNotes.length === 0" class="py-8 text-center text-sm text-muted-foreground">No notes yet.</p>
+    </div>
+    <aside class="flex flex-col gap-3 lg:sticky lg:top-24 lg:self-start">
+      <div class="card gap-2 p-4">
+        <h3 class="text-sm font-semibold">Categories</h3>
+        <ul class="flex flex-col gap-0.5">
+          <template x-for="c in ['All', ...CATEGORIES]" :key="c"><li><button type="button" @click="filter = c" :aria-pressed="filter === c" class="flex w-full cursor-pointer items-center justify-between rounded-md px-2.5 py-1.5 text-sm hover:bg-muted" :class="filter === c ? 'bg-muted font-medium' : ''"><span x-text="c"></span><span class="font-mono text-xs text-muted-foreground" x-text="countOf(c)"></span></button></li></template>
+        </ul>
+      </div>
+    </aside>
+  </div>
+</div>

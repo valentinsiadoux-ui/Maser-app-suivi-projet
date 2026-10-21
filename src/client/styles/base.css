@@ -1,0 +1,16 @@
+/* Global rules. */
+@layer base {
+  *, ::after, ::before { border-color: var(--border); }
+  * { outline-color: color-mix(in oklab, var(--ring) 50%, transparent); }
+  body { @apply bg-background text-foreground font-sans antialiased; }
+}
+
+[x-cloak] { display: none !important; }
+
+/* Lucide icons (SVG sprite: layout/icons.html), used as <svg class="i"><use href="#i-name"/></svg> */
+.i { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Settings: the section menu sticks below the header + top menu */
+:root[data-nav="top"] nav[aria-label="Settings sections"] { top: 8.5rem; }
+
+@media (prefers-reduced-motion: reduce) { * { transition-duration: 0.01ms !important; } }

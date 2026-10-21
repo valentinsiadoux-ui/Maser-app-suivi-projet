@@ -1,6 +1,6 @@
 /**
- * Point d'entrée de la web app : renvoie l'application monopage (index.html, généré par Vite).
- * Le titre et la balise viewport doivent être définis ici : Apps Script ignore ceux du <head>.
+ * Web app entry point: serves the single-page app (index.html, built by Vite).
+ * The title and the viewport tag must be set here: Apps Script ignores the ones in <head>.
  */
 function doGet() {
   return HtmlService.createHtmlOutputFromFile('index')

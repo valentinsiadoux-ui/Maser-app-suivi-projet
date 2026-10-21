@@ -1,0 +1,24 @@
+<!-- Global search: projects, tasks, tests, notes (logic: layout/search.js) -->
+<div class="relative w-full max-w-md" @click.outside="searchOpen = false">
+  <svg aria-hidden="true" class="i pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"><use href="#i-search"/></svg>
+  <input type="search" x-model="query" @input="searchOpen = true" @focus="searchOpen = true"
+         @keydown.enter="firstResult && go(firstResult.href)"
+         placeholder="Search projects, tasks, tests, notes..." aria-label="Global search" class="input h-9 pl-9">
+  <div x-show="searchOpen && query.trim()" x-cloak class="absolute inset-x-0 top-full z-50 mt-1.5 overflow-hidden rounded-lg border bg-popover shadow-lg">
+    <p x-show="results.length === 0" class="px-3 py-4 text-sm text-muted-foreground">No results for “<span x-text="query"></span>”</p>
+    <ul x-show="results.length > 0" role="listbox" aria-label="Search results" class="max-h-96 overflow-y-auto p-1">
+      <template x-for="r in results" :key="r.key">
+        <li :role="r.header ? 'presentation' : 'option'">
+          <p x-show="r.header" class="px-2.5 pt-2 pb-1 text-[11px] font-medium tracking-wider text-muted-foreground uppercase" x-text="r.label"></p>
+          <button x-show="!r.header" type="button" @click="go(r.href)" class="flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left hover:bg-accent">
+            <svg class="i size-4 shrink-0" :class="r.kind === 'project' ? 'text-primary' : 'text-muted-foreground'"><use :href="'#i-' + ({ project: 'folder-kanban', task: 'list-checks', test: 'flask-conical', note: 'notebook-pen' })[r.kind]"/></svg>
+            <span class="min-w-0">
+              <span class="block truncate text-sm font-medium" x-text="r.title"></span>
+              <span class="block truncate text-xs text-muted-foreground" x-text="r.sub"></span>
+            </span>
+          </button>
+        </li>
+      </template>
+    </ul>
+  </div>
+</div>

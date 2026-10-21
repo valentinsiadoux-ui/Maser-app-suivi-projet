@@ -1,0 +1,27 @@
+<!-- Horizontal menu, shown when the menu position is "Top" (logic: layout/navigation.js) -->
+<nav x-show="layout === 'top'" x-cloak aria-label="Main" class="overflow-x-auto bg-sidebar text-sidebar-foreground">
+  <ul class="mx-auto flex min-w-max items-center gap-0.5 px-3 py-1.5 md:px-6">
+    <template x-for="item in (isClient ? [] : items)" :key="item.href">
+      <li class="flex items-center">
+        <a :href="item.href" :aria-current="isActive(item.href) ? 'page' : null" :title="item.hint ? `${item.label} (${item.hint})` : item.label"
+           class="relative flex items-center gap-2 rounded-md px-3 py-1.5 text-sm whitespace-nowrap outline-none transition-colors focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+           :class="isActive(item.href) ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground' : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'">
+          <svg class="i size-4" :class="isActive(item.href) ? 'text-sidebar-primary' : 'text-sidebar-foreground/60'"><use :href="'#i-' + item.icon"/></svg>
+          <span x-text="item.label"></span>
+        </a>
+        <button x-show="item.projects && inProjects" type="button" @click.stop="openProjMenu($event)" aria-haspopup="menu" :aria-expanded="projMenu.open" aria-label="Switch project"
+                class="-ml-1 grid size-7 cursor-pointer place-items-center rounded-md text-sidebar-foreground/70 outline-none hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring">
+          <svg class="i size-4"><use href="#i-chevron-down"/></svg>
+        </button>
+      </li>
+    </template>
+    <li class="flex items-center">
+      <span x-show="!isClient" aria-hidden="true" class="mx-2 h-5 w-px bg-sidebar-foreground/20"></span>
+      <a href="client-space.html" class="relative flex items-center gap-2 rounded-md px-3 py-1.5 text-sm whitespace-nowrap outline-none transition-colors"
+         :class="isActive('client-space.html') ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground' : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'">
+        <svg class="i size-4" :class="isActive('client-space.html') ? 'text-sidebar-primary' : 'text-sidebar-foreground/60'"><use href="#i-building-2"/></svg>
+        Client Space
+      </a>
+    </li>
+  </ul>
+</nav>

@@ -7,18 +7,15 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
 const CLIENT = path.resolve('src/client');
 const SERVER = path.resolve('src/server');
 
-// <!-- @include chemin/fichier.html --> : assemble index.html à partir des fragments (récursif,
-// chemins relatifs au fichier qui inclut).
+// <!-- @include path/to/file.html --> assembles index.html from HTML fragments at build time.
+// Paths are always relative to src/client/, and fragments may include other fragments.
 function htmlIncludes() {
   const re = /<!--\s*@include\s+(\S+)\s*-->/g;
-  const expand = (html, dir) => html.replace(re, (_, rel) => {
-    const file = path.resolve(dir, rel);
-    return expand(fs.readFileSync(file, 'utf8'), path.dirname(file));
-  });
+  const expand = (html) => html.replace(re, (_, rel) => expand(fs.readFileSync(path.resolve(CLIENT, rel), 'utf8')));
   return {
     name: 'html-includes',
-    transformIndexHtml: { order: 'pre', handler: (html) => expand(html, CLIENT) },
-    // un fragment modifié : rechargement complet en développement
+    transformIndexHtml: { order: 'pre', handler: expand },
+    // a fragment changed: full reload in development
     handleHotUpdate({ file, server }) {
       if (file.startsWith(CLIENT) && file.endsWith('.html')) {
         server.ws.send({ type: 'full-reload' });
@@ -28,7 +25,7 @@ function htmlIncludes() {
   };
 }
 
-// Copie le code serveur Apps Script (.js, appsscript.json) à la racine de dist/
+// Copies the Apps Script server code (.js, appsscript.json) to the root of dist/
 function appsScriptServer() {
   return {
     name: 'apps-script-server',

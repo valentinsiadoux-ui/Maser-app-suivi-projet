@@ -1,0 +1,57 @@
+<!-- Project detail › Tests tab (logic: tabs/tests.js + features/) -->
+<div role="tabpanel" class="pt-4">
+  <div x-data="testsTab" @keydown.escape.window="closeLocal()" class="flex flex-col gap-5">
+    <div class="grid gap-3 sm:grid-cols-3">
+      <template x-for="c in STAT_CARDS" :key="c.key">
+        <button type="button" :aria-pressed="statusFilter === c.key" @click="toggleStatus(c.key)" class="flex cursor-pointer flex-col gap-3 rounded-xl bg-card p-4 text-left ring-1 ring-foreground/10 transition hover:ring-foreground/20" :class="statusFilter === c.key ? 'ring-2 ring-primary' : ''">
+          <span class="flex items-center gap-2 text-sm text-muted-foreground"><svg class="i size-4" :class="c.tone"><use :href="'#i-' + c.icon"/></svg><span x-text="c.key"></span></span>
+          <span class="flex items-baseline gap-2"><span class="text-2xl font-semibold tabular-nums" x-text="count(c.key)"></span><span class="text-xs text-muted-foreground" x-text="pctOf(c.key) + '% of tests'"></span></span>
+          <div role="progressbar" :aria-valuenow="(count(c.key) / (scopedTests.length || 1)) * 100" aria-valuemin="0" aria-valuemax="100" class="h-1.5 w-full overflow-hidden rounded-full bg-muted"><div class="h-full rounded-full transition-all" :class="c.bar" :style="`width: ${(count(c.key) / (scopedTests.length || 1)) * 100}%`"></div></div>
+        </button>
+      </template>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <select x-model="statusFilter" aria-label="Filter by status" class="select w-auto min-w-36"><option value="All">All statuses</option><option>Passed</option><option>Failed</option><option>Pending</option></select>
+      <p class="ml-auto text-sm text-muted-foreground" x-text="`${campaigns.length} campaigns · ${scopedTests.length} test cases`"></p>
+      <span x-show="!editable" x-cloak class="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><svg class="i size-3.5"><use href="#i-eye"/></svg>View only — you are not on this project's team</span>
+    </div>
+    <template x-for="g in groups" :key="g.key">
+      <div class="card gap-0 p-0">
+        <div class="flex flex-wrap items-center gap-3 border-b px-4 py-3">
+          <div class="min-w-0"><h3 class="font-semibold" x-text="g.campaign"></h3></div>
+          <div class="ml-auto flex w-40 items-center gap-2"><div role="progressbar" :aria-valuenow="(g.passed / g.total) * 100" aria-valuemin="0" aria-valuemax="100" class="h-1.5 w-full overflow-hidden rounded-full bg-muted"><div class="h-full rounded-full bg-success transition-all" :style="`width: ${(g.passed / g.total) * 100}%`"></div></div><span class="font-mono text-xs text-muted-foreground" x-text="g.passed + '/' + g.total"></span></div>
+        </div>
+        <div class="relative w-full overflow-x-auto">
+          <table class="w-full caption-bottom text-sm">
+            <thead class="[&_tr]:border-b"><tr class="border-b transition-colors hover:bg-muted/50">
+              <th class="h-10 px-2 pl-4 text-left align-middle font-medium whitespace-nowrap text-foreground">Test case</th><th class="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground">Status</th><th class="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground">Priority</th><th class="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground">Owner</th><th class="h-10 px-2 pr-4 text-left align-middle font-medium whitespace-nowrap text-foreground">Last run</th>
+            </tr></thead>
+            <tbody class="[&_tr:last-child]:border-0">
+              <template x-for="r in g.rows" :key="r.id">
+                <tr class="border-b transition-colors hover:bg-muted/50">
+                  <td class="p-2 pl-4 align-middle font-medium whitespace-nowrap" x-text="r.name"></td>
+                  <td class="p-2 align-middle whitespace-nowrap">
+                    <span x-show="!editable" class="badge badge-outline gap-1.5 font-medium" :class="TONES[TEST_TONE[r.status]]"><span aria-hidden="true" class="size-1.5 rounded-full bg-current"></span><span x-text="r.status"></span></span>
+                    <button x-show="editable" type="button" @click.stop="openMenu($event, r)" :aria-label="'Set result of ' + r.name" aria-haspopup="menu" class="inline-flex cursor-pointer items-center gap-1 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                      <span class="badge badge-outline gap-1.5 font-medium" :class="TONES[TEST_TONE[r.status]]"><span aria-hidden="true" class="size-1.5 rounded-full bg-current"></span><span x-text="r.status"></span></span>
+                      <svg class="i size-3.5 text-muted-foreground"><use href="#i-chevron-down"/></svg>
+                    </button>
+                  </td>
+                  <td class="p-2 align-middle whitespace-nowrap"><span class="badge badge-outline font-medium" :class="TONES[PRIORITY_TONE[r.priority]]" x-text="r.priority"></span></td>
+                  <td class="p-2 align-middle whitespace-nowrap"><span class="inline-flex items-center gap-2"><span class="relative flex size-6 shrink-0 rounded-full select-none"><span class="flex size-full items-center justify-center rounded-full text-[10px] font-semibold" :class="color(r.assigneeId)" x-text="getMember(r.assigneeId)?.initials"></span></span><span class="truncate" x-text="getMember(r.assigneeId)?.name ?? 'Unassigned'"></span></span></td>
+                  <td class="p-2 pr-4 align-middle whitespace-nowrap text-muted-foreground tabular-nums" x-text="r.lastRun ? fd(r.lastRun, 'D MMM YYYY') : '—'"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </template>
+    <p x-show="visibleTests.length === 0" class="py-10 text-center text-sm text-muted-foreground">No test cases match these filters.</p>
+
+    <div x-show="menu.open" x-cloak @click.outside="menu.open = false" role="menu" :style="`position: fixed; top: ${menu.y}px; left: ${menu.x}px`" class="z-50 w-44 rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10">
+      <div class="px-1.5 py-1 text-xs font-medium text-muted-foreground">Set result</div>
+      <template x-for="s in RESULTS" :key="s"><button type="button" role="menuitemradio" :aria-checked="menuTest && menuTest.status === s" @click="setResult(menu.testId, s); menu.open = false" class="menu-item relative py-1 pr-8"><span x-text="s"></span><svg x-show="menuTest && menuTest.status === s" class="i absolute right-2 size-4"><use href="#i-check"/></svg></button></template>
+    </div>
+  </div>
+</div>

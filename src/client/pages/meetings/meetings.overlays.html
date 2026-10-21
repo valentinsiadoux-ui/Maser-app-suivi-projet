@@ -1,0 +1,46 @@
+<!-- ============ "Schedule a meeting" dialog (logic: features/meeting-planner.js) ============ -->
+<div x-show="dialog.open" x-cloak class="fixed inset-0 z-[60]" role="presentation">
+  <div x-show="dialog.open" x-transition.opacity.duration.100ms @click="dialog.open = false" class="fixed inset-0 bg-black/10 backdrop-blur-xs"></div>
+  <div x-show="dialog.open" x-transition.opacity.duration.120ms role="dialog" aria-modal="true" aria-labelledby="mt-title"
+       class="fixed top-1/2 left-1/2 grid max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 sm:max-w-lg">
+    <form class="flex flex-col gap-4" @submit.prevent="saveMeeting()">
+      <div class="flex flex-col gap-2">
+        <h2 id="mt-title" class="text-base leading-none font-medium">Schedule a meeting</h2>
+        <p class="text-sm text-muted-foreground">The meeting is added here and opened in Google Calendar so you can invite attendees.</p>
+      </div>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1.5 sm:col-span-2">
+          <label for="m-title" class="label-text">Meeting title</label>
+          <input id="m-title" x-ref="mtitle" x-model="mform.title" class="input" placeholder="e.g. Design review" required>
+        </div>
+        <div x-show="!fixedProject" class="flex flex-col gap-1.5 sm:col-span-2">
+          <label for="m-project" class="label-text">Project</label>
+          <select id="m-project" x-model="mform.projectId" class="select">
+            <template x-for="p in leadable" :key="p.id"><option :value="p.id" x-text="p.name"></option></template>
+          </select>
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label for="m-start" class="label-text">Date &amp; time</label>
+          <input id="m-start" type="datetime-local" x-model="mform.start" class="input" required>
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label for="m-duration" class="label-text">Duration</label>
+          <select id="m-duration" x-model="mform.duration" class="select">
+            <template x-for="du in DURATIONS" :key="du.v"><option :value="du.v" x-text="du.l"></option></template>
+          </select>
+        </div>
+        <div class="flex flex-col gap-1.5 sm:col-span-2">
+          <label for="m-location" class="label-text">Location</label>
+          <input id="m-location" x-model="mform.location" class="input">
+        </div>
+      </div>
+      <div class="-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end">
+        <button type="button" class="btn btn-outline" @click="dialog.open = false">Cancel</button>
+        <button type="submit" class="btn btn-primary" :disabled="!validMeeting">
+          <svg class="i"><use href="#i-calendar-plus"/></svg>
+          Schedule via Google Calendar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
