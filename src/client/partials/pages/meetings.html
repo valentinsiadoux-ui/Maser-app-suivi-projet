@@ -1,0 +1,115 @@
+
+        <!-- Zone restreinte (rôle Client) -->
+        <div x-show="isClient" x-cloak class="mx-auto flex max-w-md flex-col items-center gap-3 py-24 text-center">
+          <span class="grid size-12 place-items-center rounded-full bg-muted"><svg class="i size-5 text-muted-foreground"><use href="#i-lock"/></svg></span>
+          <h1 class="text-lg font-semibold">Restricted area</h1>
+          <p class="text-sm text-muted-foreground">Client accounts only have access to the Client Space. Switch roles from the profile menu to explore internal views.</p>
+          <a href="client-space.html" class="btn btn-primary">Go to Client Space</a>
+        </div>
+
+        <!-- ================= RÉUNIONS ================= -->
+                <!-- Page facultative désactivée -->
+        <div x-show="!isClient && !pageEnabled" x-cloak class="mx-auto flex max-w-md flex-col items-center gap-3 py-24 text-center">
+          <span class="grid size-12 place-items-center rounded-full bg-muted"><svg class="i size-5 text-muted-foreground"><use href="#i-lock"/></svg></span>
+          <h1 class="text-lg font-semibold">This page is turned off</h1>
+          <p class="text-sm text-muted-foreground">Cross-project pages are hidden by default: the same content is available in each project's tabs. You can turn this page on in Settings.</p>
+          <div class="flex flex-wrap justify-center gap-2"><a href="settings.html?section=appearance" class="btn btn-primary">Open Settings</a><a href="projects.html" class="btn btn-outline">Browse projects</a></div>
+        </div>
+
+        <div x-show="!isClient && pageEnabled" class="mx-auto max-w-7xl">
+
+          <div class="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div class="min-w-0">
+              <h1 class="text-2xl font-semibold tracking-tight text-balance">Meetings</h1>
+              <p class="mt-1 max-w-2xl text-sm text-muted-foreground text-pretty">Project meetings (réunions), site visits and client reviews.</p>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-6">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <p class="text-sm text-muted-foreground" x-text="upcoming.length + ' upcoming · synced with Google Calendar'"></p>
+              <button x-show="canSchedule" type="button" class="btn btn-primary" @click="openSchedule()">
+                <svg class="i"><use href="#i-calendar-plus"/></svg>
+                Schedule meeting
+              </button>
+              <p x-show="!canSchedule" x-cloak class="text-xs text-muted-foreground">Only managers and project leads can schedule meetings.</p>
+            </div>
+
+            <!-- À venir -->
+            <section aria-labelledby="upcoming-heading" class="flex flex-col gap-3">
+              <h3 id="upcoming-heading" class="text-sm font-semibold">Upcoming</h3>
+              <p x-show="upcoming.length === 0" class="text-sm text-muted-foreground">No meetings scheduled.</p>
+              <div class="grid gap-3 md:grid-cols-2">
+                <template x-for="m in upcoming" :key="m.id">
+                  <div class="card flex-row gap-4 p-4">
+                    <div class="flex w-14 shrink-0 flex-col items-center justify-center rounded-lg bg-primary/8 py-2 text-primary">
+                      <span class="text-[11px] font-medium uppercase" x-text="moment(m.start).format('MMM')"></span>
+                      <span class="text-xl leading-none font-semibold tabular-nums" x-text="moment(m.start).format('D')"></span>
+                      <span class="mt-0.5 text-[10px] text-muted-foreground" x-text="moment(m.start).format('ddd')"></span>
+                    </div>
+                    <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+                      <p class="truncate font-medium" x-text="m.title"></p>
+                      <a x-show="!fixedProject" :href="'project-detail.html?id=' + m.projectId + '&tab=meetings'" class="truncate font-mono text-[11px] text-muted-foreground hover:text-primary" x-text="getProject(m.projectId).code + ' · ' + getProject(m.projectId).name"></a>
+                      <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                        <span class="inline-flex items-center gap-1">
+                          <svg class="i size-3"><use href="#i-clock"/></svg>
+                          <span x-text="ft(m.start) + ' · ' + m.durationMin + ' min'"></span>
+                        </span>
+                        <span class="inline-flex min-w-0 items-center gap-1">
+                          <svg class="i size-3"><use :href="isOnline(m) ? '#i-video' : '#i-map-pin'"/></svg>
+                          <span class="truncate" x-text="m.location"></span>
+                        </span>
+                      </div>
+                      <div class="flex -space-x-1.5">
+                        <template x-for="a in stack(m.attendeeIds)" :key="a.id">
+                          <span class="inline-flex rounded-full" :title="a.name + ' · ' + a.title">
+                            <span class="relative flex size-6 shrink-0 rounded-full ring-2 ring-card select-none"><span class="flex size-full items-center justify-center rounded-full text-[10px] font-semibold" :class="color(a.id)" x-text="a.initials"></span></span>
+                          </span>
+                        </template>
+                        <span x-show="rest(m.attendeeIds) > 0" class="relative flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] text-muted-foreground ring-2 ring-background" x-text="'+' + rest(m.attendeeIds)"></span>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </section>
+
+            <!-- Passées -->
+            <section x-show="past.length > 0" x-cloak aria-labelledby="past-heading" class="flex flex-col gap-3">
+              <h3 id="past-heading" class="text-sm font-semibold text-muted-foreground">Past meetings</h3>
+              <div class="grid gap-3 md:grid-cols-2">
+                <template x-for="m in past" :key="m.id">
+                  <div class="card flex-row gap-4 p-4 opacity-70">
+                    <div class="flex w-14 shrink-0 flex-col items-center justify-center rounded-lg bg-primary/8 py-2 text-primary">
+                      <span class="text-[11px] font-medium uppercase" x-text="moment(m.start).format('MMM')"></span>
+                      <span class="text-xl leading-none font-semibold tabular-nums" x-text="moment(m.start).format('D')"></span>
+                      <span class="mt-0.5 text-[10px] text-muted-foreground" x-text="moment(m.start).format('ddd')"></span>
+                    </div>
+                    <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+                      <p class="truncate font-medium" x-text="m.title"></p>
+                      <a x-show="!fixedProject" :href="'project-detail.html?id=' + m.projectId + '&tab=meetings'" class="truncate font-mono text-[11px] text-muted-foreground hover:text-primary" x-text="getProject(m.projectId).code + ' · ' + getProject(m.projectId).name"></a>
+                      <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                        <span class="inline-flex items-center gap-1">
+                          <svg class="i size-3"><use href="#i-clock"/></svg>
+                          <span x-text="ft(m.start) + ' · ' + m.durationMin + ' min'"></span>
+                        </span>
+                        <span class="inline-flex min-w-0 items-center gap-1">
+                          <svg class="i size-3"><use :href="isOnline(m) ? '#i-video' : '#i-map-pin'"/></svg>
+                          <span class="truncate" x-text="m.location"></span>
+                        </span>
+                      </div>
+                      <div class="flex -space-x-1.5">
+                        <template x-for="a in stack(m.attendeeIds)" :key="a.id">
+                          <span class="inline-flex rounded-full" :title="a.name + ' · ' + a.title">
+                            <span class="relative flex size-6 shrink-0 rounded-full ring-2 ring-card select-none"><span class="flex size-full items-center justify-center rounded-full text-[10px] font-semibold" :class="color(a.id)" x-text="a.initials"></span></span>
+                          </span>
+                        </template>
+                        <span x-show="rest(m.attendeeIds) > 0" class="relative flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] text-muted-foreground ring-2 ring-background" x-text="'+' + rest(m.attendeeIds)"></span>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </section>
+          </div>
+        </div>

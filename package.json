@@ -1,0 +1,29 @@
+{
+  "name": "maser-suivi-projet",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Maser Engineering — project tracking single-page web app (Google Apps Script)",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "login": "clasp login",
+    "pull": "clasp pull",
+    "push": "clasp push -f",
+    "deploy": "npm run build && npm run push",
+    "open": "clasp open-script"
+  },
+  "dependencies": {
+    "alpinejs": "^3.17.5",
+    "flyonui": "2.4.1",
+    "moment": "2.30.1"
+  },
+  "devDependencies": {
+    "@google/clasp": "^3.4.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "tailwindcss": "^4.3.3",
+    "vite": "^8.3.5",
+    "vite-plugin-singlefile": "^2.3.4"
+  }
+}

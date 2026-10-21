@@ -1,0 +1,57 @@
+
+    </div>
+  </div>
+
+  <!-- ============ Dialogue « Create project » ============ -->
+  <div x-show="createOpen" x-cloak class="fixed inset-0 z-[60]" role="presentation">
+    <div x-show="createOpen" x-transition.opacity.duration.100ms @click="createOpen = false" class="fixed inset-0 bg-black/10 backdrop-blur-xs"></div>
+    <div x-show="createOpen" x-transition.opacity.scale.95.duration.120ms role="dialog" aria-modal="true" aria-labelledby="cp-title"
+         class="fixed top-1/2 left-1/2 grid max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 sm:max-w-lg">
+      <form class="flex flex-col gap-4" @submit.prevent="submitProject()">
+        <div class="flex flex-col gap-2">
+          <h2 id="cp-title" class="text-base leading-none font-medium">Create project</h2>
+          <p class="text-sm text-muted-foreground">Set up a new engineering project. You can invite the team afterwards.</p>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div class="flex flex-col gap-1.5 sm:col-span-2">
+            <label for="p-name" class="label-text">Project name</label>
+            <input id="p-name" x-ref="pname" x-model="form.name" class="input" placeholder="e.g. Wind Farm Grid Connection" required>
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label for="p-client" class="label-text">Client</label>
+            <input id="p-client" x-model="form.client" class="input" placeholder="Client company" required>
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label for="p-priority" class="label-text">Priority</label>
+            <select id="p-priority" x-model="form.priority" class="select">
+              <option>High</option><option>Medium</option><option>Low</option>
+            </select>
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label for="p-start" class="label-text">Start date</label>
+            <input id="p-start" type="date" x-model="form.startDate" class="input" required>
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label for="p-end" class="label-text">Target end date</label>
+            <input id="p-end" type="date" x-model="form.endDate" :min="form.startDate" class="input" required>
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label for="p-tags" class="label-text">Tags</label>
+            <input id="p-tags" x-model="form.tags" class="input" placeholder="Structural, HVAC">
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label for="p-budget" class="label-text">Budget (EUR)</label>
+            <input id="p-budget" type="number" min="0" inputmode="numeric" x-model="form.budget" class="input" placeholder="250000">
+          </div>
+          <div class="flex flex-col gap-1.5 sm:col-span-2">
+            <label for="p-desc" class="label-text">Description</label>
+            <textarea id="p-desc" rows="3" x-model="form.description" class="textarea" placeholder="Scope summary"></textarea>
+          </div>
+        </div>
+        <div class="-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end">
+          <button type="button" class="btn btn-outline" @click="createOpen = false">Cancel</button>
+          <button type="submit" class="btn btn-primary" :disabled="!validForm">Create project</button>
+        </div>
+      </form>
+    </div>
+  </div>

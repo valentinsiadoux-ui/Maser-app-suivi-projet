@@ -1,0 +1,656 @@
+
+        <!-- Zone restreinte (rôle Client) -->
+        <div x-show="isClient" x-cloak class="mx-auto flex max-w-md flex-col items-center gap-3 py-24 text-center">
+          <span class="grid size-12 place-items-center rounded-full bg-muted"><svg class="i size-5 text-muted-foreground"><use href="#i-lock"/></svg></span>
+          <h1 class="text-lg font-semibold">Restricted area</h1>
+          <p class="text-sm text-muted-foreground">Client accounts only have access to the Client Space. Switch roles from the profile menu to explore internal views.</p>
+          <a href="client-space.html" class="btn btn-primary">Go to Client Space</a>
+        </div>
+
+        <!-- ================= DÉTAIL PROJET ================= -->
+        <!-- Projet introuvable -->
+        <div x-show="!isClient && !project" x-cloak class="mx-auto max-w-xl py-16">
+          <div class="rounded-lg border border-dashed bg-card/50 px-6 py-12 text-center">
+            <p class="text-sm font-medium">Project not found</p>
+            <p class="mt-1 text-sm text-muted-foreground">It may have been archived or removed.</p>
+          </div>
+          <div class="mt-4 text-center"><a href="projects.html" class="btn btn-outline">Back to projects</a></div>
+        </div>
+
+        <!-- Accès refusé -->
+        <div x-show="!isClient && project && !canView" x-cloak class="mx-auto max-w-xl py-16">
+          <div class="rounded-lg border border-dashed bg-card/50 px-6 py-12 text-center">
+            <p class="text-sm font-medium">You don't have access to this project</p>
+            <p class="mt-1 text-sm text-muted-foreground">Only members of the project team (and their supervisors) can open it.</p>
+          </div>
+          <div class="mt-4 text-center"><a href="projects.html" class="btn btn-outline">Back to projects</a></div>
+        </div>
+
+        <template x-if="!isClient && project && canView">
+          <div class="mx-auto flex max-w-7xl flex-col gap-6">
+
+            <!-- En-tête -->
+            <div>
+              <a href="projects.html" class="btn btn-text btn-sm -ml-2 mb-3 text-muted-foreground">
+                <svg class="i"><use href="#i-chevron-left"/></svg>
+                Projects
+              </a>
+              <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div class="min-w-0">
+                  <p class="font-mono text-xs text-muted-foreground" x-text="project.code"></p>
+                  <h1 class="mt-1 text-2xl font-semibold tracking-tight text-balance" x-text="project.name"></h1>
+                  <div class="mt-2 flex flex-wrap items-center gap-2">
+                    <span class="badge badge-outline gap-1.5 font-medium" :class="TONES[PROJECT_TONE[project.status]]">
+                      <span aria-hidden="true" class="size-1.5 rounded-full bg-current"></span><span x-text="project.status"></span>
+                    </span>
+                    <span class="badge badge-outline font-medium" :class="TONES[PRIORITY_TONE[project.priority]]" x-text="project.priority"></span>
+                    <span x-show="project.status === 'In Progress'" class="badge badge-outline gap-1.5 font-medium" :class="TONES[DEADLINE[deadlineState(project.endDate, false)][1]]">
+                      <span aria-hidden="true" class="size-1.5 rounded-full bg-current"></span><span x-text="DEADLINE[deadlineState(project.endDate, false)][0]"></span>
+                    </span>
+                    <template x-for="tg in project.tags" :key="tg"><span class="badge badge-secondary rounded-md font-normal" x-text="tg"></span></template>
+                    <span x-show="!editable" title="You are not on this project's team: you can view it but not modify tasks, tests or notes."
+                          class="inline-flex items-center gap-1 rounded-md border border-dashed px-2 py-0.5 text-xs font-medium text-muted-foreground">View only</span>
+                  </div>
+                </div>
+                <div class="card w-full gap-2 px-4 py-3 md:w-64">
+                  <div class="flex items-baseline justify-between">
+                    <span class="text-xs text-muted-foreground">Overall progress</span>
+                    <span class="font-mono text-lg font-semibold" x-text="progress(project) + '%'"></span>
+                  </div>
+                  <div role="progressbar" :aria-valuenow="progress(project)" aria-valuemin="0" aria-valuemax="100" class="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                    <div class="h-full rounded-full transition-all" :class="progress(project) === 100 ? 'bg-success' : 'bg-primary'" :style="`width: ${progress(project)}%`"></div>
+                  </div>
+                  <p class="text-xs text-muted-foreground" x-text="remaining"></p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Onglets -->
+            <div>
+              <div class="-mx-4 overflow-x-auto border-b px-4 md:mx-0 md:px-0">
+                <div role="tablist" class="inline-flex h-10 w-fit items-center justify-center gap-1 bg-transparent p-[3px] text-muted-foreground">
+                  <template x-for="t in tabs" :key="t.id">
+                    <button type="button" role="tab" :aria-selected="tab === t.id" @click="setTab(t.id)"
+                            class="relative inline-flex h-[calc(100%-1px)] flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-transparent px-3 py-0.5 text-sm font-medium whitespace-nowrap transition-all outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 after:absolute after:inset-x-0 after:bottom-[-5px] after:h-0.5 after:bg-primary after:transition-opacity"
+                            :class="tab === t.id ? 'text-foreground after:opacity-100' : 'text-foreground/60 after:opacity-0'" x-text="t.label"></button>
+                  </template>
+                </div>
+              </div>
+
+              <!-- Overview -->
+              <template x-if="tab === 'overview'">
+                <div role="tabpanel" class="grid gap-6 pt-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+                  <div class="flex flex-col gap-6">
+                    <div class="card gap-3 p-5">
+                      <h2 class="font-semibold">Scope</h2>
+                      <p class="text-sm leading-relaxed text-pretty text-muted-foreground" x-text="project.description || 'No description provided.'"></p>
+                      <dl class="mt-2 grid grid-cols-2 gap-4 border-t pt-4 sm:grid-cols-4">
+                        <template x-for="f in facts" :key="f.label">
+                          <div>
+                            <dt class="text-xs text-muted-foreground" x-text="f.label"></dt>
+                            <dd class="mt-0.5 text-sm font-medium" x-text="f.value"></dd>
+                            <dd x-show="f.sub" class="text-[11px] text-muted-foreground" x-text="f.sub"></dd>
+                          </div>
+                        </template>
+                      </dl>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      <template x-for="s in stats" :key="s.label">
+                        <button type="button" @click="setTab(s.go)" class="cursor-pointer rounded-xl bg-card p-4 text-left ring-1 ring-foreground/10 transition hover:ring-foreground/25">
+                          <p class="text-xs text-muted-foreground" x-text="s.label"></p>
+                          <p class="mt-1 text-2xl font-semibold tabular-nums" x-text="s.value"></p>
+                          <p class="text-[11px] text-muted-foreground" x-text="s.sub"></p>
+                        </button>
+                      </template>
+                    </div>
+
+                    <template x-if="gantt && gantt.rows.length === 0"><p class="py-10 text-center text-sm text-muted-foreground">Nothing to schedule yet.</p></template>
+                <template x-if="gantt && gantt.rows.length > 0">
+                  <div class="card gap-0 overflow-hidden p-0">
+                    <div class="overflow-x-auto">
+                      <div :style="`min-width: ${gantt.minWidth + 240}px`">
+                        <div class="flex border-b bg-muted/40">
+                          <div class="sticky left-0 z-10 w-60 shrink-0 border-r bg-muted/40 px-4 py-2.5 text-xs font-medium text-muted-foreground">Task</div>
+                          <div class="relative h-10 flex-1">
+                            <template x-for="m in gantt.months" :key="m.label">
+                              <div class="absolute inset-y-0 flex items-center border-l px-2 font-mono text-xs text-muted-foreground" :style="`left: ${m.left}%; width: ${m.width}%`" x-text="m.label"></div>
+                            </template>
+                          </div>
+                        </div>
+
+                        <!-- Jalons -->
+                        <div x-show="gantt.miles.length > 0" class="flex border-b last:border-b-0">
+                          <div class="sticky left-0 z-10 w-60 shrink-0 border-r bg-card px-4 py-2.5">
+                            <div class="block truncate text-sm font-medium">Milestones</div>
+                            <p class="truncate font-mono text-[11px] text-muted-foreground" x-text="gantt.miles.length + ' key dates'"></p>
+                          </div>
+                          <div class="relative h-14 flex-1">
+                            <template x-for="m in gantt.months" :key="m.label"><div aria-hidden="true" class="absolute inset-y-0 border-l border-dashed border-border/70" :style="`left: ${m.left}%`"></div></template>
+                            <div aria-hidden="true" class="absolute inset-y-0 z-[1] w-0.5 bg-destructive/70" :style="`left: ${gantt.todayPct}%`"></div>
+                            <template x-for="m in gantt.miles" :key="m.id">
+                              <div tabindex="0" :title="m.title" :aria-label="'Milestone: ' + m.title" class="absolute top-1/2 z-[2] flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 outline-none" :style="`left: ${m.left}%`">
+                                <span class="size-3 rotate-45 bg-warning ring-2 ring-card"></span>
+                                <span class="text-[11px] font-medium whitespace-nowrap" x-text="m.title"></span>
+                              </div>
+                            </template>
+                          </div>
+                        </div>
+
+                        <!-- Tâches -->
+                        <template x-for="r in gantt.rows" :key="r.id">
+                          <div class="flex border-b last:border-b-0">
+                            <div class="sticky left-0 z-10 w-60 shrink-0 border-r bg-card px-4 py-2.5">
+                              <div class="block truncate text-sm font-medium" x-text="r.label"></div>
+                              <p class="truncate font-mono text-[11px] text-muted-foreground" x-text="r.sub"></p>
+                            </div>
+                            <div class="relative h-14 flex-1">
+                              <template x-for="m in gantt.months" :key="m.label"><div aria-hidden="true" class="absolute inset-y-0 border-l border-dashed border-border/70" :style="`left: ${m.left}%`"></div></template>
+                              <div aria-hidden="true" class="absolute inset-y-0 z-[1] w-0.5 bg-destructive/70" :style="`left: ${gantt.todayPct}%`"></div>
+                              <div tabindex="0" :title="r.title" :aria-label="`${r.label}: ${r.title}`"
+                                   class="absolute top-1/2 h-6 -translate-y-1/2 overflow-hidden rounded-md bg-muted ring-1 ring-foreground/10 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                   :style="`left: ${r.left}%; width: ${r.width}%`">
+                                <div class="h-full" :class="r.tone" :style="`width: ${Math.max(r.progress, 4)}%`"></div>
+                                <span class="absolute inset-y-0 left-2 flex items-center font-mono text-[10px] font-semibold text-white [text-shadow:0_0_3px_rgb(0_0_0/0.45)]" x-text="r.progress + '%'"></span>
+                              </div>
+                            </div>
+                          </div>
+                        </template>
+                      </div>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-4 border-t px-4 py-2.5 text-xs text-muted-foreground">
+                      <span class="inline-flex items-center gap-1.5"><span class="h-3 w-0.5 bg-destructive"></span> Today (<span x-text="fd(TODAY)"></span>)</span>
+                      <span class="inline-flex items-center gap-1.5"><span class="size-2.5 rotate-45 bg-warning ring-1 ring-warning-foreground/30"></span> Milestone</span>
+                      <template x-for="s in ['To Do', 'In Progress', 'Review', 'Done']" :key="s">
+                        <span class="inline-flex items-center gap-1.5"><span class="size-2.5 rounded-sm" :class="TASK_BAR[s]"></span> <span x-text="s"></span></span>
+                      </template>
+                    </div>
+                  </div>
+                </template>
+                  </div>
+                  <div class="card gap-0 self-start p-0">
+                  <h2 class="border-b px-4 py-3 font-semibold" x-text="`Team (${team.length})`"></h2>
+                  <ul class="divide-y">
+                    <template x-for="m in team" :key="m.id">
+                      <li class="flex items-center gap-3 px-4 py-3">
+                        <span class="relative flex size-8 shrink-0 rounded-full select-none"><span class="flex size-full items-center justify-center rounded-full text-[10px] font-semibold" :class="color(m.id)" x-text="m.initials"></span></span>
+                        <div class="min-w-0 flex-1">
+                          <p class="flex items-center gap-1.5 truncate text-sm font-medium">
+                            <span class="truncate" x-text="m.name"></span>
+                            <span x-show="leadOf(project) === m.id" class="shrink-0 rounded bg-primary/12 px-1.5 py-0.5 text-[10px] font-semibold text-primary">Project lead</span>
+                          </p>
+                          <p class="truncate text-xs text-muted-foreground" x-text="m.company ?? m.title"></p>
+                          <p x-show="bossOf(m) && m.role !== 'Client'" class="truncate text-[11px] text-muted-foreground" x-text="'Reports to ' + (bossOf(m)?.name ?? '')"></p>
+                          <button x-show="canAssign && m.role === 'Collaborator'" type="button" @click="setLead(m.id)"
+                                  class="mt-0.5 cursor-pointer text-[11px] font-medium text-primary hover:underline"
+                                  x-text="leadOf(project) === m.id ? 'Remove as project lead' : 'Make project lead'"></button>
+                        </div>
+                        <span class="rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground" x-text="m.role"></span>
+                      </li>
+                    </template>
+                  </ul>
+                </div>
+                </div>
+              </template>
+
+              <!-- Gantt -->
+              <template x-if="tab === 'gantt'">
+                <div role="tabpanel" class="pt-4">
+                  <template x-if="gantt && gantt.rows.length === 0"><p class="py-10 text-center text-sm text-muted-foreground">Nothing to schedule yet.</p></template>
+                <template x-if="gantt && gantt.rows.length > 0">
+                  <div class="card gap-0 overflow-hidden p-0">
+                    <div class="overflow-x-auto">
+                      <div :style="`min-width: ${gantt.minWidth + 240}px`">
+                        <div class="flex border-b bg-muted/40">
+                          <div class="sticky left-0 z-10 w-60 shrink-0 border-r bg-muted/40 px-4 py-2.5 text-xs font-medium text-muted-foreground">Task</div>
+                          <div class="relative h-10 flex-1">
+                            <template x-for="m in gantt.months" :key="m.label">
+                              <div class="absolute inset-y-0 flex items-center border-l px-2 font-mono text-xs text-muted-foreground" :style="`left: ${m.left}%; width: ${m.width}%`" x-text="m.label"></div>
+                            </template>
+                          </div>
+                        </div>
+
+                        <!-- Jalons -->
+                        <div x-show="gantt.miles.length > 0" class="flex border-b last:border-b-0">
+                          <div class="sticky left-0 z-10 w-60 shrink-0 border-r bg-card px-4 py-2.5">
+                            <div class="block truncate text-sm font-medium">Milestones</div>
+                            <p class="truncate font-mono text-[11px] text-muted-foreground" x-text="gantt.miles.length + ' key dates'"></p>
+                          </div>
+                          <div class="relative h-14 flex-1">
+                            <template x-for="m in gantt.months" :key="m.label"><div aria-hidden="true" class="absolute inset-y-0 border-l border-dashed border-border/70" :style="`left: ${m.left}%`"></div></template>
+                            <div aria-hidden="true" class="absolute inset-y-0 z-[1] w-0.5 bg-destructive/70" :style="`left: ${gantt.todayPct}%`"></div>
+                            <template x-for="m in gantt.miles" :key="m.id">
+                              <div tabindex="0" :title="m.title" :aria-label="'Milestone: ' + m.title" class="absolute top-1/2 z-[2] flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 outline-none" :style="`left: ${m.left}%`">
+                                <span class="size-3 rotate-45 bg-warning ring-2 ring-card"></span>
+                                <span class="text-[11px] font-medium whitespace-nowrap" x-text="m.title"></span>
+                              </div>
+                            </template>
+                          </div>
+                        </div>
+
+                        <!-- Tâches -->
+                        <template x-for="r in gantt.rows" :key="r.id">
+                          <div class="flex border-b last:border-b-0">
+                            <div class="sticky left-0 z-10 w-60 shrink-0 border-r bg-card px-4 py-2.5">
+                              <div class="block truncate text-sm font-medium" x-text="r.label"></div>
+                              <p class="truncate font-mono text-[11px] text-muted-foreground" x-text="r.sub"></p>
+                            </div>
+                            <div class="relative h-14 flex-1">
+                              <template x-for="m in gantt.months" :key="m.label"><div aria-hidden="true" class="absolute inset-y-0 border-l border-dashed border-border/70" :style="`left: ${m.left}%`"></div></template>
+                              <div aria-hidden="true" class="absolute inset-y-0 z-[1] w-0.5 bg-destructive/70" :style="`left: ${gantt.todayPct}%`"></div>
+                              <div tabindex="0" :title="r.title" :aria-label="`${r.label}: ${r.title}`"
+                                   class="absolute top-1/2 h-6 -translate-y-1/2 overflow-hidden rounded-md bg-muted ring-1 ring-foreground/10 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                   :style="`left: ${r.left}%; width: ${r.width}%`">
+                                <div class="h-full" :class="r.tone" :style="`width: ${Math.max(r.progress, 4)}%`"></div>
+                                <span class="absolute inset-y-0 left-2 flex items-center font-mono text-[10px] font-semibold text-white [text-shadow:0_0_3px_rgb(0_0_0/0.45)]" x-text="r.progress + '%'"></span>
+                              </div>
+                            </div>
+                          </div>
+                        </template>
+                      </div>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-4 border-t px-4 py-2.5 text-xs text-muted-foreground">
+                      <span class="inline-flex items-center gap-1.5"><span class="h-3 w-0.5 bg-destructive"></span> Today (<span x-text="fd(TODAY)"></span>)</span>
+                      <span class="inline-flex items-center gap-1.5"><span class="size-2.5 rotate-45 bg-warning ring-1 ring-warning-foreground/30"></span> Milestone</span>
+                      <template x-for="s in ['To Do', 'In Progress', 'Review', 'Done']" :key="s">
+                        <span class="inline-flex items-center gap-1.5"><span class="size-2.5 rounded-sm" :class="TASK_BAR[s]"></span> <span x-text="s"></span></span>
+                      </template>
+                    </div>
+                  </div>
+                </template>
+                </div>
+              </template>
+
+              <!-- Team -->
+              <template x-if="tab === 'team'">
+                <div role="tabpanel" class="pt-4">
+                  <div class="max-w-xl">
+                    <div class="card gap-0 self-start p-0">
+                  <h2 class="border-b px-4 py-3 font-semibold" x-text="`Team (${team.length})`"></h2>
+                  <ul class="divide-y">
+                    <template x-for="m in team" :key="m.id">
+                      <li class="flex items-center gap-3 px-4 py-3">
+                        <span class="relative flex size-8 shrink-0 rounded-full select-none"><span class="flex size-full items-center justify-center rounded-full text-[10px] font-semibold" :class="color(m.id)" x-text="m.initials"></span></span>
+                        <div class="min-w-0 flex-1">
+                          <p class="flex items-center gap-1.5 truncate text-sm font-medium">
+                            <span class="truncate" x-text="m.name"></span>
+                            <span x-show="leadOf(project) === m.id" class="shrink-0 rounded bg-primary/12 px-1.5 py-0.5 text-[10px] font-semibold text-primary">Project lead</span>
+                          </p>
+                          <p class="truncate text-xs text-muted-foreground" x-text="m.company ?? m.title"></p>
+                          <p x-show="bossOf(m) && m.role !== 'Client'" class="truncate text-[11px] text-muted-foreground" x-text="'Reports to ' + (bossOf(m)?.name ?? '')"></p>
+                          <button x-show="canAssign && m.role === 'Collaborator'" type="button" @click="setLead(m.id)"
+                                  class="mt-0.5 cursor-pointer text-[11px] font-medium text-primary hover:underline"
+                                  x-text="leadOf(project) === m.id ? 'Remove as project lead' : 'Make project lead'"></button>
+                        </div>
+                        <span class="rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground" x-text="m.role"></span>
+                      </li>
+                    </template>
+                  </ul>
+                </div>
+                  </div>
+                </div>
+              </template>
+
+              <!-- Onglets Tasks, Tests, Notes, Amendments et Meetings : même logique que les pages dédiées, filtrée sur ce projet -->
+              <template x-if="tab === 'tasks'">
+                <div role="tabpanel" class="pt-4">
+                  <div x-data="tasksTab" @keydown.escape.window="closeLocal()" class="flex flex-col gap-4">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <div role="group" aria-label="Task view" class="inline-flex h-8 items-center rounded-lg border bg-card p-0.5">
+                        <button type="button" :aria-pressed="view === 'board'" aria-label="Board" @click="view = 'board'" class="inline-flex h-full items-center gap-1.5 rounded-md px-2.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none" :class="view === 'board' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"><svg class="i size-4"><use href="#i-kanban"/></svg><span class="hidden sm:inline">Board</span></button>
+                        <button type="button" :aria-pressed="view === 'list'" aria-label="List" @click="view = 'list'" class="inline-flex h-full items-center gap-1.5 rounded-md px-2.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none" :class="view === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"><svg class="i size-4"><use href="#i-list"/></svg><span class="hidden sm:inline">List</span></button>
+                      </div>
+                      <select x-model="priorityFilter" aria-label="Filter by priority" class="select w-auto min-w-36"><option value="All">All priorities</option><option>High</option><option>Medium</option><option>Low</option></select>
+                      <button type="button" :aria-pressed="mine" @click="mine = !mine" class="btn" :class="mine ? 'bg-secondary text-secondary-foreground hover:bg-secondary/80' : 'btn-outline'">Assigned to me</button>
+                      <button x-show="canAdd" type="button" @click="openAdd('To Do')" class="btn btn-primary ml-auto"><svg class="i"><use href="#i-plus"/></svg>Add task</button>
+                      <span x-show="!canAdd" x-cloak class="ml-auto inline-flex items-center gap-1.5 text-xs text-muted-foreground"><svg class="i size-3.5"><use href="#i-eye"/></svg>View only — you are not on this project's team</span>
+                    </div>
+
+                    <!-- Board -->
+                    <div x-show="view === 'board'" class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                      <template x-for="status in STATUSES" :key="status">
+                        <section :aria-label="status + ' column'" @dragover.prevent="dragOver = status" @dragleave="dragOver = null" @drop.prevent="drop($event, status)"
+                                 class="flex min-h-48 flex-col gap-2.5 rounded-xl border bg-muted/40 p-2.5 transition-colors" :class="dragOver === status ? 'border-primary/40 bg-primary/5' : ''">
+                          <header class="flex items-center gap-2 px-1.5 pt-1">
+                            <span aria-hidden="true" class="size-2 rounded-full" :class="COL_ACCENT[status]"></span>
+                            <h3 class="text-sm font-semibold" x-text="status"></h3>
+                            <span class="rounded-full bg-background px-1.5 font-mono text-xs text-muted-foreground" x-text="by(status).length"></span>
+                            <button x-show="canAdd" type="button" @click="openAdd(status)" :aria-label="'Add task to ' + status" class="ml-auto grid size-6 cursor-pointer place-items-center rounded-md hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"><svg class="i size-4"><use href="#i-plus"/></svg></button>
+                          </header>
+                          <template x-for="t in by(status)" :key="t.id">
+                            <div :draggable="editable" @dragstart="$event.dataTransfer.setData('text/task', t.id)" class="card gap-3 overflow-visible rounded-lg p-3 shadow-xs ring-0 transition-shadow hover:shadow-md" :class="editable ? 'cursor-grab active:cursor-grabbing' : ''">
+                              <div class="flex items-start gap-2">
+                                <p class="flex-1 text-sm leading-snug font-medium" x-text="t.title"></p>
+                                <button x-show="editable" type="button" @click.stop="openMenu($event, t, true, 'end')" :aria-label="'Change status of ' + t.title" aria-haspopup="menu" class="grid size-6 shrink-0 cursor-pointer place-items-center rounded-md hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"><svg class="i size-4"><use href="#i-ellipsis"/></svg></button>
+                              </div>
+                              <div class="flex items-center gap-2">
+                                <span class="badge badge-outline font-medium" :class="TONES[PRIORITY_TONE[t.priority]]" x-text="t.priority"></span>
+                                <span class="inline-flex items-center gap-1 text-xs" :class="isLate(t) ? 'font-medium text-destructive' : 'text-muted-foreground'"><svg class="i size-3"><use href="#i-calendar"/></svg><span x-text="fd(t.dueDate)"></span></span>
+                                <span class="relative ml-auto flex size-6 shrink-0 rounded-full select-none" :title="getMember(t.assigneeId)?.name + ' · ' + getMember(t.assigneeId)?.title"><span class="flex size-full items-center justify-center rounded-full text-[10px] font-semibold" :class="color(t.assigneeId)" x-text="getMember(t.assigneeId)?.initials"></span></span>
+                              </div>
+                            </div>
+                          </template>
+                          <p x-show="by(status).length === 0" class="rounded-lg border border-dashed px-3 py-6 text-center text-xs text-muted-foreground" x-text="canAdd ? 'Drop tasks here' : 'No tasks'"></p>
+                        </section>
+                      </template>
+                    </div>
+
+                    <!-- List -->
+                    <div x-show="view === 'list'" x-cloak class="card gap-0 p-0">
+                      <div class="relative w-full overflow-x-auto">
+                        <table class="w-full caption-bottom text-sm">
+                          <thead class="[&_tr]:border-b"><tr class="border-b transition-colors hover:bg-muted/50">
+                            <th class="h-10 px-2 pl-4 text-left align-middle font-medium whitespace-nowrap text-foreground">Task</th>
+                            <th class="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground">Status</th>
+                            <th class="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground">Priority</th>
+                            <th class="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground">Assignee</th>
+                            <th class="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground">Due</th>
+                            <th class="h-10 px-2 pr-4 text-right align-middle font-medium whitespace-nowrap text-foreground"><span class="sr-only">Actions</span></th>
+                          </tr></thead>
+                          <tbody class="[&_tr:last-child]:border-0">
+                            <template x-for="t in visible" :key="t.id">
+                              <tr class="border-b transition-colors hover:bg-muted/50">
+                                <td class="p-2 pl-4 align-middle font-medium whitespace-nowrap" x-text="t.title"></td>
+                                <td class="p-2 align-middle whitespace-nowrap">
+                                  <span x-show="!editable" class="badge badge-outline gap-1.5 font-medium" :class="TONES[TASK_TONE[t.status]]"><span aria-hidden="true" class="size-1.5 rounded-full bg-current"></span><span x-text="t.status"></span></span>
+                                  <button x-show="editable" type="button" @click.stop="openMenu($event, t, false, 'start')" :aria-label="'Change status of ' + t.title" aria-haspopup="menu" class="inline-flex cursor-pointer items-center gap-1 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                    <span class="badge badge-outline gap-1.5 font-medium" :class="TONES[TASK_TONE[t.status]]"><span aria-hidden="true" class="size-1.5 rounded-full bg-current"></span><span x-text="t.status"></span></span>
+                                    <svg class="i size-3.5 text-muted-foreground"><use href="#i-chevron-down"/></svg>
+                                  </button>
+                                </td>
+                                <td class="p-2 align-middle whitespace-nowrap"><span class="badge badge-outline font-medium" :class="TONES[PRIORITY_TONE[t.priority]]" x-text="t.priority"></span></td>
+                                <td class="p-2 align-middle whitespace-nowrap"><span class="inline-flex items-center gap-2"><span class="relative flex size-6 shrink-0 rounded-full select-none"><span class="flex size-full items-center justify-center rounded-full text-[10px] font-semibold" :class="color(t.assigneeId)" x-text="getMember(t.assigneeId)?.initials"></span></span><span class="truncate" x-text="getMember(t.assigneeId)?.name ?? 'Unassigned'"></span></span></td>
+                                <td class="p-2 align-middle whitespace-nowrap text-muted-foreground tabular-nums" x-text="fd(t.dueDate, 'D MMM YYYY')"></td>
+                                <td class="p-2 pr-4 text-right align-middle whitespace-nowrap"><button x-show="editable" type="button" @click="openEdit(t)" :aria-label="'Edit ' + t.title" class="inline-grid size-6 cursor-pointer place-items-center rounded-md hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"><svg class="i size-4"><use href="#i-pencil"/></svg></button></td>
+                              </tr>
+                            </template>
+                            <tr x-show="visible.length === 0" class="border-b"><td colspan="6" class="p-2 py-10 text-center align-middle text-muted-foreground">No tasks match the current filters.</td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <!-- Menu « Move to » -->
+                    <div x-show="menu.open" x-cloak @click.outside="menu.open = false" role="menu" :style="`position: fixed; top: ${menu.y}px; left: ${menu.x}px`" class="z-50 w-44 rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10">
+                      <button x-show="menu.edit" type="button" role="menuitem" @click="openEdit(menuTask)" class="menu-item"><svg class="i size-4"><use href="#i-pencil"/></svg>Edit task</button>
+                      <div class="px-1.5 py-1 text-xs font-medium text-muted-foreground">Move to</div>
+                      <template x-for="s in STATUSES" :key="s"><button type="button" role="menuitemradio" :aria-checked="menuTask && menuTask.status === s" @click="setStatus(menu.taskId, s); menu.open = false" class="menu-item relative py-1 pr-8"><span x-text="s"></span><svg x-show="menuTask && menuTask.status === s" class="i absolute right-2 size-4"><use href="#i-check"/></svg></button></template>
+                    </div>
+
+                    <!-- Dialogue Add / Edit task -->
+                    <div x-show="dialog.open" x-cloak class="fixed inset-0 z-[60]" role="presentation">
+                      <div x-show="dialog.open" x-transition.opacity.duration.100ms @click="dialog.open = false" class="fixed inset-0 bg-black/10 backdrop-blur-xs"></div>
+                      <div x-show="dialog.open" x-transition.opacity.duration.120ms role="dialog" aria-modal="true" aria-labelledby="tk-title" class="fixed top-1/2 left-1/2 grid max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 sm:max-w-lg">
+                        <form class="flex flex-col gap-4" @submit.prevent="submitTask()">
+                          <div class="flex flex-col gap-2"><h2 id="tk-title" class="text-base leading-none font-medium" x-text="dialog.mode === 'add' ? 'Add task' : 'Edit task'"></h2><p class="text-sm text-muted-foreground" x-text="dialog.mode === 'add' ? 'Create a task and assign it to a team member.' : 'Update the details, status or assignee of this task.'"></p></div>
+                          <div class="grid gap-4 sm:grid-cols-2">
+                            <div class="flex flex-col gap-1.5 sm:col-span-2"><label for="t-title" class="label-text">Task title</label><input id="t-title" x-ref="ttitle" x-model="tform.title" class="input" placeholder="e.g. Cable sizing calculation" required></div>
+                            <div class="flex flex-col gap-1.5"><label for="t-status" class="label-text">Status</label><select id="t-status" x-model="tform.status" class="select"><template x-for="s in STATUSES" :key="s"><option :value="s" x-text="s"></option></template></select></div>
+                            <div class="flex flex-col gap-1.5"><label for="t-priority" class="label-text">Priority</label><select id="t-priority" x-model="tform.priority" class="select"><option>High</option><option>Medium</option><option>Low</option></select></div>
+                            <div class="flex flex-col gap-1.5 sm:col-span-2"><label for="t-assignee" class="label-text">Assignee</label><select id="t-assignee" x-model="tform.assigneeId" class="select"><template x-for="m in formTeam" :key="m.id"><option :value="m.id" x-text="m.name + ' — ' + m.title"></option></template></select></div>
+                            <div class="flex flex-col gap-1.5"><label for="t-start" class="label-text">Start date</label><input id="t-start" type="date" x-model="tform.startDate" class="input"></div>
+                            <div class="flex flex-col gap-1.5"><label for="t-due" class="label-text">Due date</label><input id="t-due" type="date" x-model="tform.dueDate" :min="tform.startDate" class="input"></div>
+                          </div>
+                          <div class="-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end"><button type="button" class="btn btn-outline" @click="dialog.open = false">Cancel</button><button type="submit" class="btn btn-primary" :disabled="!validTask" x-text="dialog.mode === 'add' ? 'Add task' : 'Save changes'"></button></div>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+
+              <template x-if="tab === 'tests'">
+                <div role="tabpanel" class="pt-4">
+                  <div x-data="testsTab" @keydown.escape.window="closeLocal()" class="flex flex-col gap-5">
+                    <div class="grid gap-3 sm:grid-cols-3">
+                      <template x-for="c in STAT_CARDS" :key="c.key">
+                        <button type="button" :aria-pressed="statusFilter === c.key" @click="toggleStatus(c.key)" class="flex cursor-pointer flex-col gap-3 rounded-xl bg-card p-4 text-left ring-1 ring-foreground/10 transition hover:ring-foreground/20" :class="statusFilter === c.key ? 'ring-2 ring-primary' : ''">
+                          <span class="flex items-center gap-2 text-sm text-muted-foreground"><svg class="i size-4" :class="c.tone"><use :href="'#i-' + c.icon"/></svg><span x-text="c.key"></span></span>
+                          <span class="flex items-baseline gap-2"><span class="text-2xl font-semibold tabular-nums" x-text="count(c.key)"></span><span class="text-xs text-muted-foreground" x-text="pctOf(c.key) + '% of tests'"></span></span>
+                          <div role="progressbar" :aria-valuenow="(count(c.key) / (scopedTests.length || 1)) * 100" aria-valuemin="0" aria-valuemax="100" class="h-1.5 w-full overflow-hidden rounded-full bg-muted"><div class="h-full rounded-full transition-all" :class="c.bar" :style="`width: ${(count(c.key) / (scopedTests.length || 1)) * 100}%`"></div></div>
+                        </button>
+                      </template>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                      <select x-model="statusFilter" aria-label="Filter by status" class="select w-auto min-w-36"><option value="All">All statuses</option><option>Passed</option><option>Failed</option><option>Pending</option></select>
+                      <p class="ml-auto text-sm text-muted-foreground" x-text="`${campaigns.length} campaigns · ${scopedTests.length} test cases`"></p>
+                      <span x-show="!editable" x-cloak class="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><svg class="i size-3.5"><use href="#i-eye"/></svg>View only — you are not on this project's team</span>
+                    </div>
+                    <template x-for="g in groups" :key="g.key">
+                      <div class="card gap-0 p-0">
+                        <div class="flex flex-wrap items-center gap-3 border-b px-4 py-3">
+                          <div class="min-w-0"><h3 class="font-semibold" x-text="g.campaign"></h3></div>
+                          <div class="ml-auto flex w-40 items-center gap-2"><div role="progressbar" :aria-valuenow="(g.passed / g.total) * 100" aria-valuemin="0" aria-valuemax="100" class="h-1.5 w-full overflow-hidden rounded-full bg-muted"><div class="h-full rounded-full bg-success transition-all" :style="`width: ${(g.passed / g.total) * 100}%`"></div></div><span class="font-mono text-xs text-muted-foreground" x-text="g.passed + '/' + g.total"></span></div>
+                        </div>
+                        <div class="relative w-full overflow-x-auto">
+                          <table class="w-full caption-bottom text-sm">
+                            <thead class="[&_tr]:border-b"><tr class="border-b transition-colors hover:bg-muted/50">
+                              <th class="h-10 px-2 pl-4 text-left align-middle font-medium whitespace-nowrap text-foreground">Test case</th><th class="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground">Status</th><th class="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground">Priority</th><th class="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground">Owner</th><th class="h-10 px-2 pr-4 text-left align-middle font-medium whitespace-nowrap text-foreground">Last run</th>
+                            </tr></thead>
+                            <tbody class="[&_tr:last-child]:border-0">
+                              <template x-for="r in g.rows" :key="r.id">
+                                <tr class="border-b transition-colors hover:bg-muted/50">
+                                  <td class="p-2 pl-4 align-middle font-medium whitespace-nowrap" x-text="r.name"></td>
+                                  <td class="p-2 align-middle whitespace-nowrap">
+                                    <span x-show="!editable" class="badge badge-outline gap-1.5 font-medium" :class="TONES[TEST_TONE[r.status]]"><span aria-hidden="true" class="size-1.5 rounded-full bg-current"></span><span x-text="r.status"></span></span>
+                                    <button x-show="editable" type="button" @click.stop="openMenu($event, r)" :aria-label="'Set result of ' + r.name" aria-haspopup="menu" class="inline-flex cursor-pointer items-center gap-1 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                      <span class="badge badge-outline gap-1.5 font-medium" :class="TONES[TEST_TONE[r.status]]"><span aria-hidden="true" class="size-1.5 rounded-full bg-current"></span><span x-text="r.status"></span></span>
+                                      <svg class="i size-3.5 text-muted-foreground"><use href="#i-chevron-down"/></svg>
+                                    </button>
+                                  </td>
+                                  <td class="p-2 align-middle whitespace-nowrap"><span class="badge badge-outline font-medium" :class="TONES[PRIORITY_TONE[r.priority]]" x-text="r.priority"></span></td>
+                                  <td class="p-2 align-middle whitespace-nowrap"><span class="inline-flex items-center gap-2"><span class="relative flex size-6 shrink-0 rounded-full select-none"><span class="flex size-full items-center justify-center rounded-full text-[10px] font-semibold" :class="color(r.assigneeId)" x-text="getMember(r.assigneeId)?.initials"></span></span><span class="truncate" x-text="getMember(r.assigneeId)?.name ?? 'Unassigned'"></span></span></td>
+                                  <td class="p-2 pr-4 align-middle whitespace-nowrap text-muted-foreground tabular-nums" x-text="r.lastRun ? fd(r.lastRun, 'D MMM YYYY') : '—'"></td>
+                                </tr>
+                              </template>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </template>
+                    <p x-show="visibleTests.length === 0" class="py-10 text-center text-sm text-muted-foreground">No test cases match these filters.</p>
+
+                    <div x-show="menu.open" x-cloak @click.outside="menu.open = false" role="menu" :style="`position: fixed; top: ${menu.y}px; left: ${menu.x}px`" class="z-50 w-44 rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10">
+                      <div class="px-1.5 py-1 text-xs font-medium text-muted-foreground">Set result</div>
+                      <template x-for="s in RESULTS" :key="s"><button type="button" role="menuitemradio" :aria-checked="menuTest && menuTest.status === s" @click="setResult(menu.testId, s); menu.open = false" class="menu-item relative py-1 pr-8"><span x-text="s"></span><svg x-show="menuTest && menuTest.status === s" class="i absolute right-2 size-4"><use href="#i-check"/></svg></button></template>
+                    </div>
+                  </div>
+                </div>
+              </template>
+
+              <template x-if="tab === 'notes'">
+                <div role="tabpanel" class="pt-4">
+                  <div x-data="notesTab" class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+                    <div class="flex min-w-0 flex-col gap-4">
+                      <div x-show="editable" class="card gap-3 p-4">
+                        <label for="new-note" class="text-sm font-medium">Add a note</label>
+                        <textarea id="new-note" rows="3" x-model="draft" @keydown.enter="($event.metaKey || $event.ctrlKey) && !$event.isComposing && post()" placeholder="Technical observation, site visit report, decision..." class="textarea"></textarea>
+                        <div class="flex flex-wrap items-center gap-2">
+                          <select x-model="category" aria-label="Note category" class="select w-auto min-w-32"><template x-for="c in CATEGORIES" :key="c"><option :value="c" x-text="c"></option></template></select>
+                          <span class="hidden text-xs text-muted-foreground sm:inline">⌘ + Enter to post</span>
+                          <button type="button" class="btn btn-primary ml-auto" @click="post()" :disabled="!draft.trim()"><svg class="i"><use href="#i-send"/></svg>Post note</button>
+                        </div>
+                      </div>
+                      <p x-show="!editable" x-cloak class="rounded-lg border border-dashed px-4 py-3 text-sm text-muted-foreground">View only — you are not on this project's team, so you cannot add notes.</p>
+
+                      <ol class="flex flex-col gap-3">
+                        <template x-for="n in visibleNotes" :key="n.id">
+                          <li>
+                            <div class="card gap-3 p-4">
+                              <div class="flex items-start gap-3">
+                                <span class="relative flex size-8 shrink-0 rounded-full select-none"><span class="flex size-full items-center justify-center rounded-full text-[10px] font-semibold" :class="color(n.authorId)" x-text="getMember(n.authorId)?.initials"></span></span>
+                                <div class="min-w-0 flex-1">
+                                  <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                    <span class="text-sm font-medium" x-text="getMember(n.authorId)?.name"></span>
+                                    <span x-show="getMember(n.authorId)?.role === 'Client'" class="text-xs text-muted-foreground" x-text="'(' + getMember(n.authorId)?.company + ')'"></span>
+                                    <span class="rounded px-1.5 py-0.5 text-[11px] font-medium" :class="CAT_TONE[n.category]" x-text="n.category"></span>
+                                    <time class="text-xs text-muted-foreground" :datetime="n.createdAt" x-text="fdt(n.createdAt)"></time>
+                                  </div>
+                                </div>
+                                <div x-show="canEditNote(n) && editing.id !== n.id" class="flex gap-0.5">
+                                  <button type="button" aria-label="Edit note" @click="startEdit(n)" class="grid size-7 cursor-pointer place-items-center rounded-md hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"><svg class="i size-4"><use href="#i-pencil"/></svg></button>
+                                  <button type="button" aria-label="Delete note" @click="remove(n)" class="grid size-7 cursor-pointer place-items-center rounded-md hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"><svg class="i size-4"><use href="#i-trash-2"/></svg></button>
+                                </div>
+                              </div>
+                              <div x-show="editing.id === n.id" x-cloak class="flex flex-col gap-2 pl-11">
+                                <textarea aria-label="Edit note content" rows="3" x-model="editing.content" class="textarea"></textarea>
+                                <div class="flex justify-end gap-2"><button type="button" class="btn btn-outline btn-sm" @click="editing = { id: null, content: '' }">Cancel</button><button type="button" class="btn btn-primary btn-sm" :disabled="!editing.content.trim()" @click="saveEdit()">Save</button></div>
+                              </div>
+                              <p x-show="editing.id !== n.id" class="pl-11 text-sm leading-relaxed text-pretty" x-text="n.content"></p>
+                              <div class="pl-11">
+                                <button type="button" @click="toggleComments(n)" :aria-expanded="!!openComments[n.id]" class="btn btn-text btn-sm -ml-2 h-6 gap-1 px-2 text-xs text-muted-foreground"><svg class="i"><use href="#i-message-square"/></svg><span x-text="(n.comments || []).length > 0 ? (n.comments.length + ' comment' + (n.comments.length > 1 ? 's' : '')) : 'Comment'"></span></button>
+                                <div x-show="openComments[n.id]" x-cloak class="mt-2 flex flex-col gap-3 border-l-2 pl-4">
+                                  <template x-for="c in (n.comments || [])" :key="c.id">
+                                    <div class="flex gap-2.5">
+                                      <span class="relative flex size-6 shrink-0 rounded-full select-none"><span class="flex size-full items-center justify-center rounded-full text-[10px] font-semibold" :class="color(c.authorId)" x-text="getMember(c.authorId)?.initials"></span></span>
+                                      <div class="min-w-0"><p class="text-xs"><span class="font-medium" x-text="getMember(c.authorId)?.name"></span> <span class="text-muted-foreground" x-text="fdt(c.createdAt)"></span></p><p class="text-sm" x-text="c.content"></p></div>
+                                    </div>
+                                  </template>
+                                  <div x-show="canComment()" class="flex items-start gap-2">
+                                    <textarea aria-label="Write a comment" rows="1" x-model="drafts[n.id]" @keydown.enter="if (!$event.shiftKey && !$event.isComposing) { $event.preventDefault(); postComment(n) }" placeholder="Write a comment..." class="textarea min-h-8 py-1.5"></textarea>
+                                    <button type="button" class="btn btn-primary btn-square shrink-0" aria-label="Post comment" @click="postComment(n)" :disabled="!(drafts[n.id] || '').trim()"><svg class="i"><use href="#i-send"/></svg></button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </li>
+                        </template>
+                      </ol>
+                      <p x-show="visibleNotes.length === 0" class="py-8 text-center text-sm text-muted-foreground">No notes yet.</p>
+                    </div>
+                    <aside class="flex flex-col gap-3 lg:sticky lg:top-24 lg:self-start">
+                      <div class="card gap-2 p-4">
+                        <h3 class="text-sm font-semibold">Categories</h3>
+                        <ul class="flex flex-col gap-0.5">
+                          <template x-for="c in ['All', ...CATEGORIES]" :key="c"><li><button type="button" @click="filter = c" :aria-pressed="filter === c" class="flex w-full cursor-pointer items-center justify-between rounded-md px-2.5 py-1.5 text-sm hover:bg-muted" :class="filter === c ? 'bg-muted font-medium' : ''"><span x-text="c"></span><span class="font-mono text-xs text-muted-foreground" x-text="countOf(c)"></span></button></li></template>
+                        </ul>
+                      </div>
+                    </aside>
+                  </div>
+                </div>
+              </template>
+
+              <template x-if="tab === 'amendments'">
+                <div role="tabpanel" class="pt-4">
+                  <div x-data="amendmentsTab" @keydown.escape.window="closeLocal()" class="flex flex-col gap-5">
+                    <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                      <template x-for="k in totals" :key="k.label"><div class="card gap-1 px-4 py-3"><p class="text-xs text-muted-foreground" x-text="k.label"></p><p class="text-xl font-semibold tabular-nums" x-text="k.value"></p></div></template>
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                      <p class="text-sm text-muted-foreground">Version history of contract changes.</p>
+                      <button type="button" class="btn btn-primary" @click="openNew()"><svg class="i"><use href="#i-plus"/></svg>New amendment</button>
+                    </div>
+                    <div class="card gap-0 p-0">
+                      <div class="relative w-full overflow-x-auto">
+                        <table class="w-full caption-bottom text-sm">
+                          <thead class="[&_tr]:border-b"><tr class="border-b transition-colors hover:bg-muted/50">
+                            <th class="h-10 px-2 pl-4 text-left align-middle font-medium whitespace-nowrap text-foreground">Ref.</th><th class="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground">Amendment</th><th class="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground">Type</th><th class="h-10 px-2 text-right align-middle font-medium whitespace-nowrap text-foreground">Budget</th><th class="h-10 px-2 text-right align-middle font-medium whitespace-nowrap text-foreground">Schedule</th><th class="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground">Requested by</th><th class="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground">Status</th><th class="h-10 px-2 pr-4 text-right align-middle font-medium whitespace-nowrap text-foreground"><span class="sr-only">Actions</span></th>
+                          </tr></thead>
+                          <tbody class="[&_tr:last-child]:border-0">
+                            <template x-for="a in rows" :key="a.id">
+                              <tr class="border-b transition-colors hover:bg-muted/50">
+                                <td class="p-2 pl-4 align-middle font-mono text-xs whitespace-nowrap" x-text="a.ref"></td>
+                                <td class="p-2 align-middle whitespace-nowrap"><p class="font-medium" x-text="a.title"></p><p class="text-xs text-muted-foreground" x-text="fd(a.createdAt, 'D MMM YYYY')"></p></td>
+                                <td class="p-2 align-middle whitespace-nowrap"><span class="badge badge-secondary rounded-md font-normal" x-text="a.type"></span></td>
+                                <td class="p-2 text-right align-middle whitespace-nowrap tabular-nums" x-text="a.amount ? '+' + eur(a.amount) : '—'"></td>
+                                <td class="p-2 text-right align-middle whitespace-nowrap tabular-nums" x-text="a.daysImpact ? '+' + a.daysImpact + ' d' : '—'"></td>
+                                <td class="p-2 align-middle whitespace-nowrap"><span class="inline-flex items-center gap-2"><span class="relative flex size-6 shrink-0 rounded-full select-none"><span class="flex size-full items-center justify-center rounded-full text-[10px] font-semibold" :class="color(a.requestedBy)" x-text="getMember(a.requestedBy)?.initials"></span></span><span class="truncate" x-text="getMember(a.requestedBy)?.name ?? 'Unassigned'"></span></span></td>
+                                <td class="p-2 align-middle whitespace-nowrap"><span class="badge badge-outline gap-1.5 font-medium" :class="TONES[AMENDMENT_TONE[a.status]]"><span aria-hidden="true" class="size-1.5 rounded-full bg-current"></span><span x-text="a.status"></span></span></td>
+                                <td class="p-2 pr-4 text-right align-middle whitespace-nowrap">
+                                  <button x-show="a.status === 'Draft'" type="button" class="btn btn-outline btn-sm" @click="submitAmendment(a)"><svg class="i"><use href="#i-send"/></svg>Submit</button>
+                                  <button x-show="a.status === 'Pending Approval' && canLeadProject" type="button" class="btn btn-sm bg-success text-success-foreground hover:bg-success/90" @click="approve(a)"><svg class="i"><use href="#i-check"/></svg>Approve</button>
+                                </td>
+                              </tr>
+                            </template>
+                            <tr x-show="list.length === 0" class="border-b"><td colspan="8" class="p-2 py-10 text-center align-middle text-muted-foreground">No amendments recorded.</td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <!-- Dialogue New amendment -->
+                    <div x-show="dialog.open" x-cloak class="fixed inset-0 z-[60]" role="presentation">
+                      <div x-show="dialog.open" x-transition.opacity.duration.100ms @click="dialog.open = false" class="fixed inset-0 bg-black/10 backdrop-blur-xs"></div>
+                      <div x-show="dialog.open" x-transition.opacity.duration.120ms role="dialog" aria-modal="true" aria-labelledby="am-title" class="fixed top-1/2 left-1/2 grid max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 sm:max-w-lg">
+                        <form class="flex flex-col gap-4" @submit.prevent="saveAmendment()">
+                          <div class="flex flex-col gap-2"><h2 id="am-title" class="text-base leading-none font-medium">New amendment (avenant)</h2><p class="text-sm text-muted-foreground">Record a change to scope, schedule or budget. It will be saved as a draft.</p></div>
+                          <div class="grid gap-4 sm:grid-cols-2">
+                            <div class="flex flex-col gap-1.5 sm:col-span-2"><label for="a-title" class="label-text">Title</label><input id="a-title" x-ref="atitle" x-model="aform.title" class="input" placeholder="e.g. Additional inspection campaign" required></div>
+                            <div class="flex flex-col gap-1.5 sm:col-span-2"><label for="a-type" class="label-text">Revision type</label><select id="a-type" x-model="aform.type" class="select"><template x-for="ty in TYPES" :key="ty"><option :value="ty" x-text="ty"></option></template></select></div>
+                            <div class="flex flex-col gap-1.5"><label for="a-amount" class="label-text">Budget impact (EUR)</label><input id="a-amount" type="number" inputmode="numeric" x-model="aform.amount" class="input" placeholder="0"></div>
+                            <div class="flex flex-col gap-1.5"><label for="a-days" class="label-text">Schedule impact (days)</label><input id="a-days" type="number" inputmode="numeric" x-model="aform.days" class="input" placeholder="0"></div>
+                          </div>
+                          <div class="-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end"><button type="button" class="btn btn-outline" @click="dialog.open = false">Cancel</button><button type="submit" class="btn btn-primary" :disabled="!validAmendment">Save draft</button></div>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+
+              <template x-if="tab === 'meetings'">
+                <div role="tabpanel" class="pt-4">
+                  <div x-data="meetingsTab" @keydown.escape.window="closeLocal()" class="flex flex-col gap-6">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                      <p class="text-sm text-muted-foreground" x-text="upcoming.length + ' upcoming · synced with Google Calendar'"></p>
+                      <button x-show="canSchedule" type="button" class="btn btn-primary" @click="openSchedule()"><svg class="i"><use href="#i-calendar-plus"/></svg>Schedule meeting</button>
+                      <p x-show="!canSchedule" x-cloak class="text-xs text-muted-foreground">Only managers and project leads can schedule meetings.</p>
+                    </div>
+                    <section aria-labelledby="upcoming-heading" class="flex flex-col gap-3">
+                      <h3 id="upcoming-heading" class="text-sm font-semibold">Upcoming</h3>
+                      <p x-show="upcoming.length === 0" class="text-sm text-muted-foreground">No meetings scheduled.</p>
+                      <div class="grid gap-3 md:grid-cols-2"><template x-for="m in upcoming" :key="m.id"><div class="card flex-row gap-4 p-4">
+                            <div class="flex w-14 shrink-0 flex-col items-center justify-center rounded-lg bg-primary/8 py-2 text-primary"><span class="text-[11px] font-medium uppercase" x-text="moment(m.start).format('MMM')"></span><span class="text-xl leading-none font-semibold tabular-nums" x-text="moment(m.start).format('D')"></span><span class="mt-0.5 text-[10px] text-muted-foreground" x-text="moment(m.start).format('ddd')"></span></div>
+                            <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+                              <p class="truncate font-medium" x-text="m.title"></p>
+                              <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                <span class="inline-flex items-center gap-1"><svg class="i size-3"><use href="#i-clock"/></svg><span x-text="ft(m.start) + ' · ' + m.durationMin + ' min'"></span></span>
+                                <span class="inline-flex min-w-0 items-center gap-1"><svg class="i size-3"><use :href="isOnline(m) ? '#i-video' : '#i-map-pin'"/></svg><span class="truncate" x-text="m.location"></span></span>
+                              </div>
+                              <div class="flex -space-x-1.5">
+                                <template x-for="a in stack(m.attendeeIds)" :key="a.id"><span class="inline-flex rounded-full" :title="a.name + ' · ' + a.title"><span class="relative flex size-6 shrink-0 rounded-full ring-2 ring-card select-none"><span class="flex size-full items-center justify-center rounded-full text-[10px] font-semibold" :class="color(a.id)" x-text="a.initials"></span></span></span></template>
+                                <span x-show="rest(m.attendeeIds) > 0" class="relative flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] text-muted-foreground ring-2 ring-background" x-text="'+' + rest(m.attendeeIds)"></span>
+                              </div>
+                            </div>
+                          </div></template></div>
+                    </section>
+                    <section x-show="past.length > 0" x-cloak aria-labelledby="past-heading" class="flex flex-col gap-3">
+                      <h3 id="past-heading" class="text-sm font-semibold text-muted-foreground">Past meetings</h3>
+                      <div class="grid gap-3 md:grid-cols-2"><template x-for="m in past" :key="m.id"><div class="card flex-row gap-4 p-4 opacity-70">
+                            <div class="flex w-14 shrink-0 flex-col items-center justify-center rounded-lg bg-primary/8 py-2 text-primary"><span class="text-[11px] font-medium uppercase" x-text="moment(m.start).format('MMM')"></span><span class="text-xl leading-none font-semibold tabular-nums" x-text="moment(m.start).format('D')"></span><span class="mt-0.5 text-[10px] text-muted-foreground" x-text="moment(m.start).format('ddd')"></span></div>
+                            <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+                              <p class="truncate font-medium" x-text="m.title"></p>
+                              <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                <span class="inline-flex items-center gap-1"><svg class="i size-3"><use href="#i-clock"/></svg><span x-text="ft(m.start) + ' · ' + m.durationMin + ' min'"></span></span>
+                                <span class="inline-flex min-w-0 items-center gap-1"><svg class="i size-3"><use :href="isOnline(m) ? '#i-video' : '#i-map-pin'"/></svg><span class="truncate" x-text="m.location"></span></span>
+                              </div>
+                              <div class="flex -space-x-1.5">
+                                <template x-for="a in stack(m.attendeeIds)" :key="a.id"><span class="inline-flex rounded-full" :title="a.name + ' · ' + a.title"><span class="relative flex size-6 shrink-0 rounded-full ring-2 ring-card select-none"><span class="flex size-full items-center justify-center rounded-full text-[10px] font-semibold" :class="color(a.id)" x-text="a.initials"></span></span></span></template>
+                                <span x-show="rest(m.attendeeIds) > 0" class="relative flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] text-muted-foreground ring-2 ring-background" x-text="'+' + rest(m.attendeeIds)"></span>
+                              </div>
+                            </div>
+                          </div></template></div>
+                    </section>
+
+                    <!-- Dialogue Schedule a meeting -->
+                    <div x-show="dialog.open" x-cloak class="fixed inset-0 z-[60]" role="presentation">
+                      <div x-show="dialog.open" x-transition.opacity.duration.100ms @click="dialog.open = false" class="fixed inset-0 bg-black/10 backdrop-blur-xs"></div>
+                      <div x-show="dialog.open" x-transition.opacity.duration.120ms role="dialog" aria-modal="true" aria-labelledby="mt-title" class="fixed top-1/2 left-1/2 grid max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 sm:max-w-lg">
+                        <form class="flex flex-col gap-4" @submit.prevent="saveMeeting()">
+                          <div class="flex flex-col gap-2"><h2 id="mt-title" class="text-base leading-none font-medium">Schedule a meeting</h2><p class="text-sm text-muted-foreground">The meeting is added here and opened in Google Calendar so you can invite attendees.</p></div>
+                          <div class="grid gap-4 sm:grid-cols-2">
+                            <div class="flex flex-col gap-1.5 sm:col-span-2"><label for="m-title" class="label-text">Meeting title</label><input id="m-title" x-ref="mtitle" x-model="mform.title" class="input" placeholder="e.g. Design review" required></div>
+                            <div class="flex flex-col gap-1.5"><label for="m-start" class="label-text">Date &amp; time</label><input id="m-start" type="datetime-local" x-model="mform.start" class="input" required></div>
+                            <div class="flex flex-col gap-1.5"><label for="m-duration" class="label-text">Duration</label><select id="m-duration" x-model="mform.duration" class="select"><template x-for="du in DURATIONS" :key="du.v"><option :value="du.v" x-text="du.l"></option></template></select></div>
+                            <div class="flex flex-col gap-1.5 sm:col-span-2"><label for="m-location" class="label-text">Location</label><input id="m-location" x-model="mform.location" class="input"></div>
+                          </div>
+                          <div class="-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end"><button type="button" class="btn btn-outline" @click="dialog.open = false">Cancel</button><button type="submit" class="btn btn-primary" :disabled="!validMeeting"><svg class="i"><use href="#i-calendar-plus"/></svg>Schedule via Google Calendar</button></div>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </template>

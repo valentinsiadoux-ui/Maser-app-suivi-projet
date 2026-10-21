@@ -1,0 +1,13 @@
+  <!-- ============ Menu flottant « Set result » ============ -->
+  <div x-show="menu.open" x-cloak @click.outside="menu.open = false" role="menu"
+       :style="`position: fixed; top: ${menu.y}px; left: ${menu.x}px`"
+       class="z-50 w-44 rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10">
+    <div class="px-1.5 py-1 text-xs font-medium text-muted-foreground">Set result</div>
+    <template x-for="s in RESULTS" :key="s">
+      <button type="button" role="menuitemradio" :aria-checked="menuTest && menuTest.status === s"
+              @click="setResult(menu.testId, s); menu.open = false" class="menu-item relative py-1 pr-8">
+        <span x-text="s"></span>
+        <svg x-show="menuTest && menuTest.status === s" class="i absolute right-2 size-4"><use href="#i-check"/></svg>
+      </button>
+    </template>
+  </div>
